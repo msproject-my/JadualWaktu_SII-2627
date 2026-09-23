@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agihan Jadual Waktu JMSK Sesi II: 2026/2027 - PPD</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Excel Table Core Styling */
+    .excel-table {
+      border-collapse: collapse;
+      font-size: 11px;
+      font-family: Calibri, 'Segoe UI', Arial, sans-serif;
+    }
+    .excel-table th, .excel-table td {
+      border: 1px solid #71717a;
+      padding: 2px 4px;
+      line-height: 1.25;
+    }
+    .excel-cell-text {
+      font-weight: 700;
+      font-size: 10.5px;
+      text-align: center;
+      display: block;
+      width: 100%;
+      min-height: 18px;
+      line-height: 18px;
+    }
+    /* Custom Color Badges & Rows */
+    .bg-carry { background-color: #06b6d4 !important; color: #083344; font-weight: 800; } /* Cyan Carry */
+    .bg-mass { background-color: #fef08a !important; } /* Yellow Mass Lecture */
+    .bg-four-classes { background-color: #eab308 !important; } /* Amber 4 classes */
+    .bg-induk { background-color: #e2e8f0 !important; } /* Jabatan Induk */
+
+    @media print {
+      @page {
+        size: A4 landscape;
+        margin: 5mm;
+      }
+      body {
+        background: white !important;
+        font-size: 8.5px !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page-break {
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      .sheet-container {
+        overflow: visible !important;
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .a4-print-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 4px !important;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .print-grid-cols-4 {
+        display: grid !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-200 text-slate-900 font-sans min-h-screen">
+
+  <!-- Top Sticky Bar -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50 border-b border-slate-700 no-print">
+    <div class="w-full px-4 py-2 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center space-x-3">
+        <span class="bg-emerald-600 text-white p-1.5 rounded text-sm font-black flex items-center justify-center">
+          <i class="fa-solid fa-file-lines"></i>
+        </span>
+        <div>
+          <h1 class="text-xs md:text-sm font-black tracking-wide uppercase flex items-center gap-2">
+            AGIHAN JADUAL WAKTU SESI II: 2026/2027
+            <span class="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded font-mono">POLITEKNIK PORT DICKSON</span>
+            <span id="role-badge" class="bg-sky-500/20 text-sky-300 text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-normal">
+              <i class="fa-solid fa-eye text-[8px] mr-1"></i> Paparan Pensyarah (Viewer)
+            </span>
+          </h1>
+          <p class="text-[10px] text-slate-400">Jabatan Matematik, Sains & Komputer (JMSK) — Portal Paparan Edaran Rasmi</p>
+        </div>
+      </div>
+
+      <!-- Action & View Controls -->
+      <div class="flex items-center flex-wrap gap-2 text-xs">
+        <!-- Live GSheet Status Indicator & Sync (Visible to both) -->
+        <button onclick="fetchFromGoogleSheet()" id="btn-sync-gsheet" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded font-bold flex items-center gap-1.5 shadow transition">
+          <i class="fa-solid fa-arrows-rotate" id="sync-icon"></i> Segar Semula (Sync)
+        </button>
+
+        <!-- ADMIN EXCLUSIVE BUTTON: Google Sheet Settings (Hidden for regular viewers) -->
+        <button onclick="openConfigModal()" id="btn-admin-gsheet-config" class="hidden bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 rounded font-bold flex items-center gap-1.5 shadow border border-amber-400 transition" title="Tetapan Admin: Pautan Google Sheet">
+          <i class="fa-solid fa-link"></i> Pautan GSheet
+        </button>
+
+        <!-- View Mode Switcher -->
+        <div class="bg-slate-800 p-1 rounded flex space-x-1 border border-slate-700">
+          <button onclick="setViewMode('pages')" id="btn-view-pages" class="px-3 py-1 rounded font-bold text-white bg-indigo-600 flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-file-invoice"></i> Mod Halaman (A4)
+          </button>
+          <button onclick="setViewMode('worksheet')" id="btn-view-worksheet" class="px-3 py-1 rounded font-semibold text-slate-300 hover:text-white flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-table-cells-large"></i> Worksheet Penuh
+          </button>
+        </div>
+
+        <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded font-bold flex items-center gap-1 shadow transition">
+          <i class="fa-solid fa-print"></i> Cetak / PDF
+        </button>
+
+        <!-- ADMIN LOGIN / LOGOUT TOGGLE BUTTONS -->
+        <div id="auth-controls" class="ml-1 border-l border-slate-700 pl-2">
+          <!-- Viewer Login Button -->
+          <button onclick="openAdminLoginModal()" id="btn-login-admin" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-2.5 py-1.5 rounded font-semibold flex items-center gap-1.5 border border-slate-600 transition" title="Log Masuk Pentadbir Jadual">
+            <i class="fa-solid fa-lock text-amber-400"></i> Pentadbir
+          </button>
+
+          <!-- Admin Logged In Badge & Logout Button -->
+          <div id="admin-session-box" class="hidden items-center gap-1.5">
+            <button onclick="logoutAdmin()" class="bg-rose-900/60 hover:bg-rose-800 text-rose-200 hover:text-white px-2.5 py-1.5 rounded font-bold flex items-center gap-1 border border-rose-500/50 transition" title="Keluar daripada mod Pentadbir">
+              <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i> Log Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
+
+  <!-- ADMIN LOGIN MODAL -->
+  <div id="admin-login-modal" class="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+    <div class="bg-white text-slate-900 rounded-xl shadow-2xl max-w-sm w-full p-6 border border-slate-200">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 class="font-black text-sm text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-amber-600"></i>
+          Log Masuk Pentadbir (Admin)
+        </h3>
+        <button onclick="closeAdminLoginModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+      <div class="space-y-4 my-4 text-xs">
+        <p class="text-slate-600 leading-relaxed">
+          Sila masukkan kata laluan keselamatan untuk mengakses tetapan pautan Google Sheets dan pengurusan sistem.
+        </p>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Kata Laluan Admin:</label>
+          <input type="password" id="input-admin-password" placeholder="Masukkan kata laluan"
+            class="w-full border border-slate-300 rounded px-3 py-2 text-xs font-mono focus:border-indigo-500 focus:outline-hidden"
+            onkeydown="if(event.key === 'Enter') handleAdminLogin()" />
+          <p class="text-[10px] text-slate-400 mt-1">Kata laluan asal: <span class="font-mono font-bold text-slate-600">jmsk2026</span></p>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+        <button onclick="closeAdminLoginModal()" class="px-3 py-1.5 rounded font-semibold text-slate-600 hover:bg-slate-100 text-xs">Batal</button>
+        <button onclick="handleAdminLogin()" class="px-4 py-1.5 rounded font-bold bg-amber-600 text-white hover:bg-amber-500 text-xs flex items-center gap-1.5 shadow">
+          <i class="fa-solid fa-key"></i> Sahkan Masuk
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Sheet Configuration Modal (Hanya dibuka oleh Admin) -->
+  <div id="gsheet-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden no-print">
+    <div class="bg-white text-slate-900 rounded-xl shadow-2xl max-w-lg w-full p-6 border border-slate-200">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-200">
+        <h3 class="font-black text-sm text-slate-900 flex items-center gap-2">
+          <i class="fa-brands fa-google-drive text-emerald-600"></i>
+          Tetapan Google Sheets (Mod Pentadbir)
+        </h3>
+        <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">&times;</button>
+      </div>
+      <div class="space-y-4 my-4 text-xs">
+        <p class="text-slate-600 leading-relaxed">
+          Masukkan pautan <strong>Publish to web (format CSV)</strong> daripada Google Sheet agihan. Semua pensyarah yang membuka portal akan melihat data terkini ini secara paparan sahaja.
+        </p>
+
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1.5 text-[11px] text-slate-700">
+          <span class="font-bold text-slate-900 block">Cara dapatkan link CSV dari Google Sheets anda:</span>
+          <div>1. Buka Google Sheet agihan jadual anda.</div>
+          <div>2. Klik <strong>File &gt; Share &gt; Publish to web</strong>.</div>
+          <div>3. Pilih Sheet/Helaian berkenaan, ubah <i>Web page</i> kepada <strong>Comma-separated values (.csv)</strong>.</div>
+          <div>4. Klik <strong>Publish</strong> dan salin pautan URL tersebut ke kotak di bawah.</div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Pautan CSV Google Sheet:</label>
+          <input type="text" id="input-gsheet-url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+            class="w-full border border-slate-300 rounded px-3 py-2 text-xs font-mono focus:border-indigo-500 focus:outline-hidden" />
+        </div>
+
+        <!-- Optional: Change Admin Password -->
+        <div class="pt-2 border-t border-slate-200">
+          <details class="cursor-pointer">
+            <summary class="font-bold text-slate-700 hover:text-indigo-600">Tukar Kata Laluan Pentadbir (Pilihan)</summary>
+            <div class="mt-2 space-y-2 pl-2 border-l-2 border-slate-300">
+              <input type="password" id="input-new-admin-password" placeholder="Kata laluan baharu..." class="w-full border border-slate-300 rounded px-3 py-1.5 text-xs font-mono" />
+              <button onclick="updateAdminPassword()" class="px-3 py-1 rounded bg-slate-800 text-white text-[11px] font-bold hover:bg-slate-700">Simpan Kata Laluan Baharu</button>
+            </div>
+          </details>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+        <button onclick="closeConfigModal()" class="px-3 py-1.5 rounded font-semibold text-slate-600 hover:bg-slate-100 text-xs">Tutup</button>
+        <button onclick="saveAndSyncGoogleSheetUrl()" class="px-4 py-1.5 rounded font-bold bg-emerald-600 text-white hover:bg-emerald-500 text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-save"></i> Simpan &amp; Muat Data
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="p-3 w-full">
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 1: WORKSHEET PENUH (SATU LEMBARAN BERSAMBUNG DARI KIRI KE KANAN)      -->
+    <!-- ========================================================================= -->
+    <div id="view-worksheet-wrapper" class="overflow-x-auto pb-6">
+      <div class="inline-flex gap-4 items-start min-w-[1900px] bg-white p-4 rounded-lg shadow border border-slate-300">
+        
+        <!-- KOLUM 1: DBS10042, DBM10252, DBM10202 -->
+        <div class="w-[300px] space-y-3 shrink-0">
+          <div id="table-DBS10042"></div>
+          <div id="table-DBM10252"></div>
+          <div id="table-DBM10202"></div>
+        </div>
+
+        <!-- KOLUM 2: DBM10163, DBM20233 & PETUNJUK -->
+        <div class="w-[310px] space-y-3 shrink-0">
+          <div id="table-DBM10163"></div>
+          <div id="table-DBM20233"></div>
+
+          <!-- Petunjuk Warna Mengikut Lembaran Sebenar -->
+          <div class="border border-slate-700 bg-white p-2.5 text-[11px] space-y-2 rounded shadow-xs">
+            <div class="font-black text-slate-900 border-b pb-1 text-xs">PETUNJUK KELAS / PENSYARAH:</div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-4 bg-yellow-300 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
+              <span class="font-bold text-[10px] text-slate-800">PENSYARAH (UTAMA/CO) 4 KELAS</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-4 bg-cyan-400 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
+              <span class="font-bold text-[10px] text-cyan-950">KELAS CARRY JMSK</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-4 bg-purple-200 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
+              <span class="font-bold text-[10px] text-purple-950">KELAS MASS LECTURE</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="w-7 h-4 bg-slate-200 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
+              <span class="font-bold text-[10px] text-slate-700">PENSYARAH JABATAN INDUK</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- KOLUM 3: DBM20173, DBM30243, KOKURIKULUM -->
+        <div class="w-[300px] space-y-3 shrink-0">
+          <div id="table-DBM20173"></div>
+          <div id="table-DBM30243"></div>
+          <div id="table-KOKU"></div>
+        </div>
+
+        <!-- KOLUM 4: DBM30183, DBM30193, DBM30033, DBM30043 & RUJUKAN KADAR JAM (RUANGAN BAWAH KANAN) -->
+        <div class="w-[300px] space-y-3 shrink-0">
+          <div id="table-DBM30183"></div>
+          <div id="table-DBM30193"></div>
+          <div id="table-DBM30033"></div>
+          <div id="table-DBM30043"></div>
+
+          <!-- Jadual Rujukan Kadar Jam Kursus (Dipindahkan ke Bawah Kanan & Diwarnakan) -->
+          <div id="box-kadar-jam" class="border-2 border-amber-400 bg-amber-50/40 p-1.5 rounded-lg shadow-sm">
+            <div class="bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-white font-black text-center text-[10.5px] py-1 px-2 mb-1 flex items-center justify-between rounded tracking-wide shadow-xs">
+              <span class="flex items-center gap-1.5">
+                <i class="fa-solid fa-bookmark text-amber-200 text-xs"></i>
+                <span>KADAR JAM KURSUS</span>
+              </span>
+              <span class="bg-amber-950/40 text-amber-100 text-[8.5px] px-2 py-0.5 rounded-full font-bold uppercase tracking-normal border border-amber-300/40">
+                Rujukan Sahaja
+              </span>
+            </div>
+            <table class="excel-table w-full text-center bg-white shadow-xs">
+              <thead>
+                <tr class="bg-amber-100/80 font-black text-amber-950">
+                  <th class="text-left px-2 py-1 text-[10px]">KOD KURSUS</th>
+                  <th class="w-16 bg-blue-100 text-blue-950 py-1 text-[10px]">JAM CO</th>
+                  <th class="w-16 bg-emerald-100 text-emerald-950 py-1 text-[10px]">JAM T2</th>
+                </tr>
+              </thead>
+              <tbody id="courseJamConfigBody" class="font-bold">
+                <!-- Dijana melalui renderCourseJamConfigTable() -->
+              </tbody>
+            </table>
+            <div class="text-[9px] text-amber-900 bg-amber-100/60 p-1 mt-1 rounded text-center font-medium italic border border-amber-200">
+              <i class="fa-solid fa-circle-info text-amber-600 mr-1"></i> Rujukan rasmi kiraan jam kredit JMSK PPD
+            </div>
+          </div>
+        </div>
+
+        <!-- BAHAGIAN KANAN 1: RUMUSAN JAM PENSYARAH & SUBJEK (GAMBAR 3) -->
+        <div class="w-[660px] shrink-0 border border-slate-700 bg-white p-2 rounded shadow-xs">
+          <div class="bg-indigo-950 text-white font-black text-xs p-1.5 text-center mb-1.5 flex items-center justify-between">
+            <span class="uppercase tracking-wider">RUMUSAN JAM MENGAJAR 32 PENSYARAH (AUTO-CALCULATED)</span>
+            <span class="text-[10px] font-normal text-indigo-300">Sesi II: 2026/2027</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="lecturerSummaryMasterTable" class="excel-table w-full">
+              <thead>
+                <tr class="bg-slate-200 font-black text-center text-slate-800">
+                  <th class="w-7">BIL.</th>
+                  <th class="w-16">PENSYARAH</th>
+                  <th class="w-9 bg-blue-100 text-blue-950">CO</th>
+                  <th class="w-9">T2(4H)</th>
+                  <th class="w-9">T2(3H)</th>
+                  <th class="w-9">T2(2H)</th>
+                  <th class="w-9 bg-purple-100 text-purple-950">KOKO</th>
+                  <th class="w-10 bg-indigo-100 text-indigo-950">TOTAL</th>
+                  <th class="text-left px-2">SUBJECT</th>
+                </tr>
+              </thead>
+              <tbody id="summaryTableBody">
+                <!-- Dijana melalui renderLecturerSummaryMaster() -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- BAHAGIAN KANAN 2: JADUAL KULIAH BERPUSAT (MASS LECTURE) DI MKEJ (GAMBAR 3 PALING KANAN) -->
+        <div class="w-[320px] shrink-0 border border-slate-700 bg-white p-2 rounded shadow-xs">
+          <div class="bg-indigo-900 text-white font-black text-xs p-1.5 text-center mb-1.5">
+            JADUAL KULIAH BERPUSAT (MKEJ)
+          </div>
+          <table class="excel-table w-full text-center">
+            <thead>
+              <tr class="bg-slate-200 font-black">
+                <th class="w-14">HARI</th>
+                <th class="w-20">MASA</th>
+                <th class="w-14">TEMPAT</th>
+                <th class="w-20">KELAS</th>
+                <th class="text-left px-2">PENSYARAH TERLIBAT</th>
+              </tr>
+            </thead>
+            <tbody id="massLectureScheduleBody">
+              <!-- Dijana melalui renderMassLectureTable() -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- VIEW 2: MOD HALAMAN A4 (PRINT PAGES) - KINI 2 HALAMAN SAHAJA              -->
+    <!-- ========================================================================= -->
+    <div id="view-pages-wrapper" class="hidden space-y-6">
+
+      <!-- HALAMAN 1 DARI 2: SEMUA KURSUS (GABUNGAN PENUH 4 LAJUR KURSUS) -->
+      <section class="bg-white p-4 max-w-[1400px] mx-auto rounded-lg shadow border border-slate-300 a4-print-box page-break">
+        <div class="text-center pb-2 mb-3 border-b border-slate-400 flex justify-between items-center">
+          <div class="text-left">
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">JABATAN MATEMATIK, SAINS & KOMPUTER</span>
+            <span class="text-[11px] font-black text-indigo-950 uppercase">POLITEKNIK PORT DICKSON</span>
+          </div>
+          <div class="text-center">
+            <h2 class="text-xs md:text-sm font-black uppercase text-slate-900 tracking-wide">BORANG AGIHAN JADUAL WAKTU SESI II: 2026/2027</h2>
+            <p class="text-[9.5px] text-slate-600 font-semibold">Agihan Beban Mengajar Keseluruhan Kursus Matematik, Sains & Kokurikulum</p>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] font-black bg-indigo-100 text-indigo-900 px-2 py-0.5 rounded border border-indigo-200">HALAMAN 1 / 2</span>
+          </div>
+        </div>
+
+        <!-- 4 Kolum Kursus Selaras Mengikut Lembaran Sebenar -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 print-grid-cols-4 gap-2.5 items-start" id="page1-all-courses-container">
+          <!-- Populated via syncPagesContent() -->
+        </div>
+      </section>
+
+      <!-- HALAMAN 2 DARI 2: RUMUSAN JAM PENSYARAH & JADUAL KULIAH BERPUSAT -->
+      <section class="bg-white p-5 max-w-[1400px] mx-auto rounded-lg shadow border border-slate-300 a4-print-box">
+        <div class="text-center pb-2 mb-3 border-b border-slate-400 flex justify-between items-center">
+          <div class="text-left">
+            <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">JABATAN MATEMATIK, SAINS & KOMPUTER</span>
+            <span class="text-[11px] font-black text-indigo-950 uppercase">POLITEKNIK PORT DICKSON</span>
+          </div>
+          <div class="text-center">
+            <h2 class="text-xs md:text-sm font-black uppercase text-slate-900 tracking-wide">RUMUSAN JAM PENGAJARAN PENSYARAH & JADUAL BERPUSAT</h2>
+            <p class="text-[9.5px] text-slate-600 font-semibold">Sesi II: 2026/2027 — Analisis Jam Kontak & Jadual MKEJ</p>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] font-black bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded border border-emerald-200">HALAMAN 2 / 2</span>
+          </div>
+        </div>
+
+        <div class="space-y-4" id="page2-summary-container">
+          <!-- Cloned summary table and Mass Lecture schedule -->
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <script>
+    // 1. CONFIG KADAR JAM SETIAP KURSUS (MENGESAHKAN KIRI BAWAH GAMBAR)
+    const courseJamConfig = {
+      "DBS10042": { co: 3, t2: 2, name: "ENGINEERING SCIENCE", headerBg: "bg-pink-100", borderCol: "border-pink-300" },
+      "DBM10163": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 1", headerBg: "bg-sky-100", borderCol: "border-sky-300" },
+      "DBM10202": { co: 3, t2: 2, name: "ELEMENTARY MATHEMATICS", headerBg: "bg-blue-100", borderCol: "border-blue-300" },
+      "DBM20233": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS (ELEKTRIK)", headerBg: "bg-teal-100", borderCol: "border-teal-300" },
+      "DBM10252": { co: 3, t2: 2, name: "BASIC MATHEMATICS(ELEKTRIK/MEKANIKAL)", headerBg: "bg-blue-100", borderCol: "border-blue-300" },
+      "DBM20173": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 2", headerBg: "bg-indigo-100", borderCol: "border-indigo-300" },
+      "DBM30243": { co: 4, t2: 2, name: "NUMERICAL ANALYSIS", headerBg: "bg-slate-200", borderCol: "border-slate-400" },
+      "DBM30183": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 3", headerBg: "bg-amber-100", borderCol: "border-amber-300" },
+      "DBM30193": { co: 4, t2: 2, name: "ELECTRICAL ENGINEERING MATHEMATICS", headerBg: "bg-cyan-100", borderCol: "border-cyan-300" },
+      "DBM30033": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 3", headerBg: "bg-orange-100", borderCol: "border-orange-300" },
+      "DBM30043": { co: 4, t2: 2, name: "ELECTRICAL ENGINEERING MATHEMATICS", headerBg: "bg-lime-100", borderCol: "border-lime-300" },
+      "KOKU":     { co: 2, t2: 2, name: "KOKURIKULUM", headerBg: "bg-purple-100", borderCol: "border-purple-300" }
+    };
+
+    // 2. SENARAI KURSUS & KELAS TEPAT SEPERTI GAMBAR
+    const coursesStructure = [
+      {
+        id: "DBS10042",
+        columns: ["KURSUS", "CO", "T2 (3H)", "T2 (2H)"],
+        classes: [
+          { group: "DKA1A", special: "" },
+          { group: "DKA1B", special: "" },
+          { group: "DKA1C", special: "" },
+          { group: "DKA1D", special: "" },
+          { group: "DKA1E", special: "yellow" },
+          { group: "DKA1F", special: "" },
+          { group: "DKA1G", special: "" },
+          { group: "DKA1H", special: "" },
+          { group: "DTK1A", special: "" },
+          { group: "DTK1B", special: "" },
+          { group: "DTK1C", special: "yellow" },
+          { group: "DEP1A", special: "" },
+          { group: "DEP1B", special: "" },
+          { group: "DEP1C", special: "" },
+          { group: "DEG1A", special: "" },
+          { group: "DEG1B", special: "" },
+          { group: "DEG1C", special: "" },
+          { group: "DEQ1A", special: "" },
+          { group: "DEQ1B", special: "" },
+          { group: "DET2A", special: "" },
+          { group: "DET2B", special: "" },
+          { group: "DKM1A", special: "" },
+          { group: "DKM1B", special: "" },
+          { group: "DAD1A", special: "" },
+          { group: "DAD1B", special: "" },
+          { group: "DAD1C", special: "" },
+          { group: "DAD1D", special: "induk" },
+          { group: "DAD1E", special: "" },
+          { group: "DTP1A", special: "" },
+          { group: "DTP1B", special: "" },
+          { group: "DTP1C", special: "" },
+          { group: "DEM1A", special: "" },
+          { group: "CYDBS10042(A)", special: "cyan" },
+          { group: "CYDBS10042(B)", special: "cyan" }
+        ]
+      },
+      {
+        id: "DBM10163",
+        columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
+        classes: [
+          { group: "DKA1A", special: "" },
+          { group: "DKA1B", special: "" },
+          { group: "DKA1C", special: "" },
+          { group: "DKA1D", special: "" },
+          { group: "DKA1E", special: "yellow" },
+          { group: "DKA1F", special: "" },
+          { group: "DKA1G", special: "" },
+          { group: "DKA1H", special: "" },
+          { group: "DTK1A", special: "" },
+          { group: "DTK1B", special: "" },
+          { group: "DTK1C", special: "" },
+          { group: "DEP1A/1B/1C|DTP1A/1B/1C|DKM1C", special: "mass" },
+          { group: "DEG1A", special: "" },
+          { group: "DEG1B", special: "" },
+          { group: "DEG1C", special: "" },
+          { group: "DEQ1A", special: "" },
+          { group: "DEQ1B", special: "" },
+          { group: "DKM1A", special: "" },
+          { group: "DKM1B", special: "" },
+          { group: "DAD1A", special: "" },
+          { group: "DAD1B", special: "" },
+          { group: "DAD1C", special: "" },
+          { group: "DAD1D", special: "induk" },
+          { group: "DAD1E", special: "" },
+          { group: "DEM1A", special: "" },
+          { group: "CYDBM10163", special: "cyan" }
+        ]
+      },
+      {
+        id: "DBM10202",
+        columns: ["KURSUS", "CO", "T2(3H)", "T2(2H)"],
+        classes: [
+          { group: "DSB1A", special: "" },
+          { group: "DSB1B", special: "" },
+          { group: "DSB1C", special: "" }
+        ]
+      },
+      {
+        id: "DBM20233",
+        columns: ["KURSUS", "CO", "T2(4H)", "T2(2H)"],
+        classes: [
+          { group: "DET1A", special: "" },
+          { group: "DET1B", special: "" },
+          { group: "DET1C", special: "" },
+          { group: "DET1D", special: "" }
+        ]
+      },
+      {
+        id: "DBM10252",
+        columns: ["KURSUS", "CO", "T2(3H)", "T2(2H)"],
+        classes: [
+          { group: "DEP1A", special: "" },
+          { group: "DEP1B", special: "" },
+          { group: "DEP1C", special: "" },
+          { group: "DTP1A", special: "" },
+          { group: "DTP1B", special: "" },
+          { group: "DTP1C", special: "induk" }
+        ]
+      },
+      {
+        id: "DBM20173",
+        columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
+        classes: [
+          { group: "DKA2A/DTK2A/DEG2A/DEQ2A", special: "" },
+          { group: "DAD2A/DKM2A", special: "" },
+          { group: "CYDBM20173 (A)", special: "" },
+          { group: "CYDBM20173 (B)", special: "" },
+          { group: "CYDBM20173 (C)", special: "" }
+        ]
+      },
+      {
+        id: "DBM30243",
+        columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
+        classes: [
+          { group: "DET2A", special: "" },
+          { group: "DET2B", special: "" }
+        ]
+      },
+      {
+        id: "KOKU",
+        columns: ["KURSUS", "CO", "T2"],
+        classes: [
+          { group: "MPU24161", name: "WATANIAH", special: "" },
+          { group: "MPU24261", name: "PENGAKAP", special: "" },
+          { group: "MPU24041", name: "KELAB", special: "" }
+        ]
+      },
+      {
+        id: "DBM30183",
+        columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
+        classes: [
+          { group: "DKM3A", special: "" },
+          { group: "DKM3B", special: "" },
+          { group: "DKM3C", special: "" },
+          { group: "DKM3D", special: "" },
+          { group: "DAD3A", special: "" },
+          { group: "DAD3B", special: "" },
+          { group: "DAD3C", special: "" },
+          { group: "DAD3D", special: "" },
+          { group: "DAD3E", special: "" },
+          { group: "DTP3A", special: "" },
+          { group: "DEM3A", special: "" }
+        ]
+      },
+      {
+        id: "DBM30193",
+        columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
+        classes: [
+          { group: "DTK3A", special: "" },
+          { group: "DTK3B", special: "" },
+          { group: "DEG3A", special: "" },
+          { group: "DEG3B", special: "" },
+          { group: "DEQ3A", special: "" },
+          { group: "DEQ3B", special: "" },
+          { group: "DEQ3C", special: "" },
+          { group: "DEQ3D", special: "" },
+          { group: "DEP3A", special: "" }
+        ]
+      },
+      {
+        id: "DBM30033",
+        columns: ["KURSUS", "CO", "T2(4H)", "T2(2H)"],
+        classes: [
+          { group: "CYDBM30033", special: "cyan" }
+        ]
+      },
+      {
+        id: "DBM30043",
+        columns: ["KURSUS", "CO", "T2(4H)", "T2(2H)"],
+        classes: [
+          { group: "CYDBM30343", special: "cyan" }
+        ]
+      }
+    ];
+
+    // 3. MASTER LECTURER LIST (32 PENSYARAH SEPERTI DI GAMBAR)
+    const masterLecturers = [
+      "B-AAA", "B-AMY", "B-ABE", "B-FBM", "B-HSI", "B-JGM", "B-JBI", "B-LKT",
+      "B-MZM", "B-JAZ", "B-MSP", "B-NSH", "B-NAS", "B-AIN", "B-NAZ", "B-NHMY",
+      "B-ROS", "B-RAR", "B-SFK", "B-SMR", "B-SBR", "B-SBN", "B-TYC", "B-ZBH",
+      "B-ZBD", "B-ZAK", "B-HBH", "B-FBA", "B-ALZ", "B-NAK", "B-MGM", "B-AHA"
+    ];
+
+    // 4. JADUAL KULIAH BERPUSAT (MKEJ1 / MKEJ2) SEPERTI GAMBAR PALING KANAN
+    const massLectureSchedule = [
+      { hari: "ISNIN", masa: "10.15 - 12.15", tempat: "MKEJ2", kelas: "CYBDS10042<br>DAD1D", pensyarah: "B-AHA<br>M-NAM" },
+      { hari: "ISNIN", masa: "2.15 - 4.15", tempat: "MKEJ2", kelas: "DEP1A<br>DKA1G", pensyarah: "B-AHA<br>B-SMR" },
+      { hari: "SELASA", masa: "8.00 - 10.00", tempat: "MKEJ1", kelas: "DTP1A", pensyarah: "B-ZAK" },
+      { hari: "SELASA", masa: "8.00 - 10.00", tempat: "MKEJ2", kelas: "DKA1E<br>DEG1C<br>DTP1C", pensyarah: "B-HSI<br>B-ALZ<br>B-SMR" },
+      { hari: "SELASA", masa: "2.15 - 4.15", tempat: "MKEJ2", kelas: "DKA1D<br>DEP1C", pensyarah: "B-SBN<br>B-MSP" },
+      { hari: "RABU", masa: "10.15 - 12.15", tempat: "MKEJ2", kelas: "DKM1A<br>DKA1F", pensyarah: "B-HSI<br>B-ZAK" },
+      { hari: "KHAMIS", masa: "8.00 - 10.00", tempat: "MKEJ1", kelas: "DAD1B<br>DKA1H", pensyarah: "B-ALZ<br>B-SBN" },
+      { hari: "JUMAAT", masa: "8.00 - 10.00", tempat: "MKEJ1", kelas: "DTK1B<br>DTK1C", pensyarah: "B-ZBD<br>B-AIN" }
+    ];
+
+    // 5. PENYIMPANAN DATA SEBENAR SEPERTI GAMBAR KEDUA (IMAGE 2 & 3)
+    let actualAllocations = {};
+
+    function getPreloadedActualData() {
+      return {
+        // DBS10042
+        "DBS10042_0_co": "B-AIN", "DBS10042_0_t2_2h": "B-NHMY",
+        "DBS10042_1_co": "B-JGM", "DBS10042_1_t2_2h": "B-ALZ",
+        "DBS10042_2_co": "B-AIN", "DBS10042_2_t2_2h": "B-NAK",
+        "DBS10042_3_co": "B-SBN", "DBS10042_3_t2_2h": "B-ZAK",
+        "DBS10042_4_co": "B-HSI", "DBS10042_4_t2_2h": "B-NAS",
+        "DBS10042_5_co": "B-ZAK", "DBS10042_5_t2_2h": "B-SBN",
+        "DBS10042_6_co": "B-SMR", "DBS10042_6_t2_2h": "B-ZBD",
+        "DBS10042_7_co": "B-SBN", "DBS10042_7_t2_2h": "B-ZAK",
+        "DBS10042_8_co": "B-NAS", "DBS10042_8_t2_2h": "B-SMR",
+        "DBS10042_9_co": "B-ZBD", "DBS10042_9_t2_2h": "B-SBN",
+        "DBS10042_10_co": "B-AIN", "DBS10042_10_t2_2h": "B-AAA",
+        "DBS10042_11_co": "B-AHA", "DBS10042_11_t2_2h": "B-HSI",
+        "DBS10042_12_co": "B-SBN", "DBS10042_12_t2_2h": "B-ALZ",
+        "DBS10042_13_co": "B-MSP", "DBS10042_13_t2_2h": "B-AHA",
+        "DBS10042_14_co": "B-RAR", "DBS10042_14_t2_2h": "B-NAS",
+        "DBS10042_15_co": "B-NAK", "DBS10042_15_t2_2h": "B-ROS",
+        "DBS10042_16_co": "B-ALZ", "DBS10042_16_t2_2h": "B-ZBD",
+        "DBS10042_17_co": "B-NAK", "DBS10042_17_t2_2h": "B-HSI",
+        "DBS10042_18_co": "B-ZBD", "DBS10042_18_t2_2h": "B-NAS",
+        "DBS10042_19_co": "B-MZM", "DBS10042_19_t2_2h": "B-AHA",
+        "DBS10042_20_co": "B-ZAK", "DBS10042_20_t2_2h": "B-SBN",
+        "DBS10042_21_co": "B-HSI", "DBS10042_21_t2_2h": "B-MZM",
+        "DBS10042_22_co": "B-JGM", "DBS10042_22_t2_2h": "B-ZAK",
+        "DBS10042_23_co": "B-MSP", "DBS10042_23_t2_2h": "B-SMR",
+        "DBS10042_24_co": "B-ALZ", "DBS10042_24_t2_2h": "B-JGM",
+        "DBS10042_25_co": "B-SMR", "DBS10042_25_t2_2h": "B-ROS",
+        "DBS10042_26_co": "M-NAM", "DBS10042_26_t2_2h": "B-ROS",
+        "DBS10042_27_co": "B-NAS", "DBS10042_27_t2_2h": "B-AIN",
+        "DBS10042_28_co": "B-ZAK", "DBS10042_28_t2_2h": "B-AAA",
+        "DBS10042_29_co": "B-NHMY", "DBS10042_29_t2_2h": "B-MZM",
+        "DBS10042_30_co": "B-SMR", "DBS10042_30_t2_2h": "B-NAK",
+        "DBS10042_31_co": "B-NAK", "DBS10042_31_t2_2h": "B-AIN",
+        "DBS10042_32_co": "B-AHA", "DBS10042_32_t2_2h": "B-AAA",
+        "DBS10042_33_co": "B-HSI", "DBS10042_33_t2_2h": "B-ZAK",
+
+        // DBM10163
+        "DBM10163_0_co": "B-ALZ", "DBM10163_0_t2_2h": "B-JGM",
+        "DBM10163_1_co": "B-ROS", "DBM10163_1_t2_2h": "B-FBA",
+        "DBM10163_2_co": "B-NSH", "DBM10163_2_t2_2h": "B-TYC",
+        "DBM10163_3_co": "B-ZBH", "DBM10163_3_t2_2h": "B-HBH",
+        "DBM10163_4_co": "B-JAZ", "DBM10163_4_t2_2h": "B-TYC",
+        "DBM10163_5_co": "B-NAK", "DBM10163_5_t2_2h": "B-TYC",
+        "DBM10163_6_co": "B-AHA", "DBM10163_6_t2_2h": "B-LKT",
+        "DBM10163_7_co": "B-ZBD", "DBM10163_7_t2_2h": "B-SFK",
+        "DBM10163_8_co": "B-HBH", "DBM10163_8_t2_2h": "B-FBA",
+        "DBM10163_9_co": "B-AIN", "DBM10163_9_t2_2h": "B-FBA",
+        "DBM10163_10_co": "B-AAA", "DBM10163_10_t2_2h": "B-LKT",
+        "DBM10163_11_co": "B-JBI", "DBM10163_11_t2_4h": "B-NSH",
+        "DBM10163_12_co": "B-FBA", "DBM10163_12_t2_2h": "B-JAZ",
+        "DBM10163_13_co": "B-TYC", "DBM10163_13_t2_2h": "B-ROS",
+        "DBM10163_14_co": "B-HSI", "DBM10163_14_t2_2h": "B-MSP",
+        "DBM10163_15_co": "B-JAZ", "DBM10163_15_t2_2h": "B-RAR",
+        "DBM10163_16_co": "B-NSH", "DBM10163_16_t2_2h": "B-LKT",
+        "DBM10163_17_co": "B-HBH", "DBM10163_17_t2_2h": "B-AIN",
+        "DBM10163_18_co": "B-LKT", "DBM10163_18_t2_2h": "B-NSH",
+        "DBM10163_19_co": "B-ZBD", "DBM10163_19_t2_2h": "B-TYC",
+        "DBM10163_20_co": "B-FBA", "DBM10163_20_t2_2h": "B-LKT",
+        "DBM10163_21_co": "B-LKT", "DBM10163_21_t2_2h": "B-ALZ",
+        "DBM10163_22_co": "M-MGS", "DBM10163_22_t2_2h": "B-RAR",
+        "DBM10163_23_co": "B-TYC", "DBM10163_23_t2_2h": "B-FBA",
+        "DBM10163_24_co": "B-ROS", "DBM10163_24_t2_2h": "B-AMY",
+        "DBM10163_25_co": "B-HBH", "DBM10163_25_t2_2h": "B-NAK",
+
+        // DBM10202
+        "DBM10202_0_co": "B-JAZ", "DBM10202_0_t2_2h": "B-RAR",
+        "DBM10202_1_co": "B-ZAK", "DBM10202_1_t2_2h": "B-JAZ",
+        "DBM10202_2_co": "B-RAR", "DBM10202_2_t2_2h": "B-NSH",
+
+        // DBM20233
+        "DBM20233_0_co": "B-SFK", "DBM20233_0_t2_2h": "B-RAR",
+        "DBM20233_1_co": "B-NSH", "DBM20233_1_t2_2h": "B-SFK",
+        "DBM20233_2_co": "B-AMY", "DBM20233_2_t2_2h": "B-AAA",
+        "DBM20233_3_co": "B-RAR", "DBM20233_3_t2_2h": "B-HBH",
+
+        // DBM10252
+        "DBM10252_0_co": "B-LKT", "DBM10252_0_t2_2h": "B-HSI",
+        "DBM10252_1_co": "B-FBA", "DBM10252_1_t2_2h": "B-HBH",
+        "DBM10252_2_co": "B-AAA", "DBM10252_2_t2_2h": "B-ZBH",
+        "DBM10252_3_co": "B-AHA", "DBM10252_3_t2_2h": "B-JGM",
+        "DBM10252_4_co": "B-JAZ", "DBM10252_4_t2_2h": "B-ALZ",
+        "DBM10252_5_co": "M-WWM", "DBM10252_5_t2_2h": "B-MSP",
+
+        // DBM20173
+        "DBM20173_0_co": "B-TYC", "DBM20173_0_t2_2h": "B-AMY",
+        "DBM20173_1_co": "B-SBN", "DBM20173_1_t2_2h": "B-AMY",
+        "DBM20173_2_co": "B-ROS", "DBM20173_2_t2_2h": "B-ABE",
+        "DBM20173_3_co": "B-JGM", "DBM20173_3_t2_2h": "B-NAS",
+        "DBM20173_4_co": "",      "DBM20173_4_t2_2h": "B-JGM",
+
+        // DBM30243
+        "DBM30243_0_co": "B-NAS", "DBM30243_0_t2_2h": "B-FBM",
+        "DBM30243_1_co": "B-AAA", "DBM30243_1_t2_2h": "B-NAS",
+
+        // KOKURIKULUM
+        "KOKU_0_co": "WATANIAH", "KOKU_0_t2": "B-SFK",
+        "KOKU_1_co": "PENGAKAP", "KOKU_1_t2": "B-MZM",
+        "KOKU_2_co": "KELAB",    "KOKU_2_t2": "B-ALZ",
+
+        // DBM30183
+        "DBM30183_0_co": "B-NHMY", "DBM30183_0_t2_2h": "B-NAZ",
+        "DBM30183_1_co": "B-SBR", "DBM30183_1_t2_2h": "B-NHMY",
+        "DBM30183_2_co": "B-SFK", "DBM30183_2_t2_2h": "B-FBM",
+        "DBM30183_3_co": "B-JBI", "DBM30183_3_t2_2h": "B-AMY",
+        "DBM30183_4_co": "B-ZBH", "DBM30183_4_t2_2h": "B-NAZ",
+        "DBM30183_5_co": "B-SFK", "DBM30183_5_t2_2h": "B-ZBH",
+        "DBM30183_6_co": "B-ZBH", "DBM30183_6_t2_2h": "B-SBR",
+        "DBM30183_7_co": "B-NHMY", "DBM30183_7_t2_2h": "B-ZBH",
+        "DBM30183_8_co": "B-SBR", "DBM30183_8_t2_2h": "B-FBM",
+        "DBM30183_9_co": "B-JBI", "DBM30183_9_t2_2h": "B-SBR",
+        "DBM30183_10_co": "B-NAZ", "DBM30183_10_t2_2h": "B-NHMY",
+
+        // DBM30193
+        "DBM30193_0_co": "B-SBR", "DBM30193_0_t2_2h": "B-ABE",
+        "DBM30193_1_co": "",      "DBM30193_1_t2_2h": "B-SBR",
+        "DBM30193_2_co": "B-FBM", "DBM30193_2_t2_2h": "B-ABE",
+        "DBM30193_3_co": "B-AMY", "DBM30193_3_t2_2h": "B-NHMY",
+        "DBM30193_4_co": "B-NAZ", "DBM30193_4_t2_2h": "B-JBI",
+        "DBM30193_5_co": "B-AMY", "DBM30193_5_t2_2h": "B-SBR",
+        "DBM30193_6_co": "B-NAZ", "DBM30193_6_t2_2h": "B-JBI",
+        "DBM30193_7_co": "B-ABE", "DBM30193_7_t2_2h": "B-JBI",
+        "DBM30193_8_co": "B-SMR", "DBM30193_8_t2_2h": "B-NAZ"
+      };
+    }
+
+    function renderAllCourseTables() {
+      coursesStructure.forEach(course => {
+        const container = document.getElementById(`table-${course.id}`);
+        if (!container) return;
+
+        const cfg = courseJamConfig[course.id] || { co: 3, t2: 2, name: course.id, headerBg: "bg-slate-100", borderCol: "border-slate-300" };
+        
+        let headerThs = course.columns.map((colName, cIdx) => {
+          let extraW = cIdx === 0 ? 'w-24 text-left px-1.5' : 'w-16 text-center';
+          return `<th class="${extraW}">${colName}</th>`;
+        }).join('');
+
+        let rowsHtml = course.classes.map((cls, rIdx) => {
+          let rowClass = "";
+          if (cls.special === "yellow") rowClass = "bg-yellow-200 font-bold";
+          else if (cls.special === "cyan") rowClass = "bg-cyan-100 font-black text-cyan-950";
+          else if (cls.special === "mass") rowClass = "bg-purple-100 font-semibold";
+          else if (cls.special === "induk") rowClass = "bg-slate-200";
+
+          let tdInputs = "";
+
+          if (course.id === "KOKU") {
+            // Kokurikulum format: KURSUS | NAMA KELAB/WATANIAH | PENSYARAH
+            const valCo = actualAllocations[`${course.id}_${rIdx}_co`] || cls.name || "";
+            const valT2 = actualAllocations[`${course.id}_${rIdx}_t2`] || "";
+            tdInputs = `
+              <td class="text-center font-bold px-1 text-[10px] bg-slate-50">${cls.group}</td>
+              <td class="text-center font-bold px-1 text-[10px]">${cls.name}</td>
+              <td class="p-0.5 bg-white text-center">
+                <span class="excel-cell-text text-purple-900 font-bold">${valT2 || '-'}</span>
+              </td>
+            `;
+          } else {
+            // Regular Course tables
+            let groupLabel = cls.group;
+            let groupCellClass = cls.special === "cyan" ? "bg-carry text-white" : "";
+
+            // Mapping for dynamic column slots
+            let slotKeys = [];
+            if (course.columns.length === 3) {
+              slotKeys = ['co', 't2'];
+            } else if (course.columns.length === 4) {
+              if (course.columns.includes("T2 (4H)")) {
+                slotKeys = ['co', 't2_4h', 't2_2h'];
+              } else {
+                slotKeys = ['co', 't2_3h', 't2_2h'];
+              }
+            }
+
+            let inputTds = slotKeys.map(slot => {
+              const val = actualAllocations[`${course.id}_${rIdx}_${slot}`] || "";
+              let fontColor = slot === 'co' ? 'text-blue-950 font-black' : 'text-slate-800 font-bold';
+              return `
+                <td class="p-0.5 bg-white text-center">
+                  <span class="excel-cell-text ${fontColor}">${val || '-'}</span>
+                </td>
+              `;
+            }).join('');
+
+            tdInputs = `
+              <td class="font-bold text-[10px] px-1.5 ${groupCellClass}">${groupLabel}</td>
+              ${inputTds}
+            `;
+          }
+
+          return `<tr class="${rowClass}">${tdInputs}</tr>`;
+        }).join('');
+
+        container.innerHTML = `
+          <div class="border ${cfg.borderCol} bg-white shadow-xs rounded-xs overflow-hidden">
+            <div class="${cfg.headerBg} p-1 text-center font-black text-[11px] border-b ${cfg.borderCol} text-slate-800 tracking-tight">
+              ${course.id} &mdash; <span class="text-[10px] font-bold text-slate-600">${cfg.name}</span>
+            </div>
+            <table class="excel-table w-full">
+              <thead>
+                <tr class="bg-slate-200 font-black text-center text-slate-800">
+                  ${headerThs}
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+          </div>
+        `;
+      });
+    }
+
+    // GOOGLE SHEETS LIVE SYNC ENGINE
+    const GSHEET_STORAGE_KEY = "ppd_jmsk_gsheet_csv_url";
+    const ADMIN_PASSWORD_KEY = "ppd_jmsk_admin_pass";
+    const ADMIN_SESSION_KEY = "ppd_jmsk_admin_logged_in";
+
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      if (!container) return;
+      const toast = document.createElement("div");
+      
+      let bgClass = "bg-slate-900 border-slate-700 text-white";
+      let icon = '<i class="fa-solid fa-circle-info text-sky-400"></i>';
+      if (type === "success") {
+        bgClass = "bg-emerald-950 border-emerald-700 text-emerald-100";
+        icon = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
+      } else if (type === "error") {
+        bgClass = "bg-rose-950 border-rose-700 text-rose-100";
+        icon = '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>';
+      }
+
+      toast.className = `${bgClass} border px-4 py-2.5 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
+      toast.innerHTML = `${icon} <span>${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.classList.remove("translate-y-2", "opacity-0");
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add("opacity-0", "translate-y-2");
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function checkAdminSession() {
+      const isLoggedIn = sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+      const btnAdminGSheet = document.getElementById("btn-admin-gsheet-config");
+      const btnLoginAdmin = document.getElementById("btn-login-admin");
+      const adminSessionBox = document.getElementById("admin-session-box");
+      const roleBadge = document.getElementById("role-badge");
+
+      if (isLoggedIn) {
+        if (btnAdminGSheet) btnAdminGSheet.classList.remove("hidden");
+        if (btnLoginAdmin) btnLoginAdmin.classList.add("hidden");
+        if (adminSessionBox) {
+          adminSessionBox.classList.remove("hidden");
+          adminSessionBox.classList.add("flex");
+        }
+        if (roleBadge) {
+          roleBadge.className = "bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-normal";
+          roleBadge.innerHTML = '<i class="fa-solid fa-shield-halved text-[8px] mr-1"></i> Pentadbir (Admin Mode)';
+        }
+      } else {
+        if (btnAdminGSheet) btnAdminGSheet.classList.add("hidden");
+        if (btnLoginAdmin) btnLoginAdmin.classList.remove("hidden");
+        if (adminSessionBox) {
+          adminSessionBox.classList.add("hidden");
+          adminSessionBox.classList.remove("flex");
+        }
+        if (roleBadge) {
+          roleBadge.className = "bg-sky-500/20 text-sky-300 text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-normal";
+          roleBadge.innerHTML = '<i class="fa-solid fa-eye text-[8px] mr-1"></i> Paparan Pensyarah (Viewer)';
+        }
+      }
+    }
+
+    function openAdminLoginModal() {
+      const modal = document.getElementById("admin-login-modal");
+      const passInput = document.getElementById("input-admin-password");
+      if (modal) modal.classList.remove("hidden");
+      if (passInput) {
+        passInput.value = "";
+        setTimeout(() => passInput.focus(), 50);
+      }
+    }
+
+    function closeAdminLoginModal() {
+      const modal = document.getElementById("admin-login-modal");
+      if (modal) modal.classList.add("hidden");
+    }
+
+    function handleAdminLogin() {
+      const passInput = document.getElementById("input-admin-password");
+      const enteredPass = passInput ? passInput.value.trim() : "";
+      const savedPass = localStorage.getItem(ADMIN_PASSWORD_KEY) || "jmsk2026";
+
+      if (enteredPass === savedPass) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+        closeAdminLoginModal();
+        checkAdminSession();
+        showToast("Log masuk pentadbir berjaya! Anda kini boleh menetapkan pautan Google Sheet.", "success");
+      } else {
+        showToast("Kata laluan tidak sah! Sila cuba lagi.", "error");
+      }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      checkAdminSession();
+      showToast("Anda telah keluar dari mod Pentadbir. Paparan kembali kepada mod Pensyarah (Viewer).", "info");
+    }
+
+    function updateAdminPassword() {
+      const newPassInput = document.getElementById("input-new-admin-password");
+      const newPass = newPassInput ? newPassInput.value.trim() : "";
+      if (newPass.length < 4) {
+        showToast("Kata laluan baharu mestilah sekurang-kurangnya 4 aksara.", "error");
+        return;
+      }
+      localStorage.setItem(ADMIN_PASSWORD_KEY, newPass);
+      if (newPassInput) newPassInput.value = "";
+      showToast("Kata laluan pentadbir berjaya dikemas kini!", "success");
+    }
+
+    function openConfigModal() {
+      // Security guard: only open if admin
+      if (sessionStorage.getItem(ADMIN_SESSION_KEY) !== "true") {
+        openAdminLoginModal();
+        return;
+      }
+      const input = document.getElementById("input-gsheet-url");
+      input.value = localStorage.getItem(GSHEET_STORAGE_KEY) || "";
+      document.getElementById("gsheet-modal").classList.remove("hidden");
+    }
+
+    function closeConfigModal() {
+      document.getElementById("gsheet-modal").classList.add("hidden");
+    }
+
+    function saveAndSyncGoogleSheetUrl() {
+      const url = document.getElementById("input-gsheet-url").value.trim();
+      if (url) {
+        localStorage.setItem(GSHEET_STORAGE_KEY, url);
+        closeConfigModal();
+        showToast("Pautan Google Sheet berjaya disimpan. Menyegerakkan data...", "success");
+        fetchFromGoogleSheet();
+      } else {
+        localStorage.removeItem(GSHEET_STORAGE_KEY);
+        closeConfigModal();
+        showToast("Pautan Google Sheet telah dialih keluar.", "info");
+      }
+    }
+
+    async function fetchFromGoogleSheet() {
+      const csvUrl = localStorage.getItem(GSHEET_STORAGE_KEY);
+      const syncBtn = document.getElementById("btn-sync-gsheet");
+      const syncIcon = document.getElementById("sync-icon");
+
+      if (!csvUrl) {
+        if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "true") {
+          openConfigModal();
+        } else {
+          showToast("Pautan Google Sheet belum ditetapkan oleh Pentadbir.", "error");
+        }
+        return;
+      }
+
+      try {
+        if (syncIcon) syncIcon.classList.add("fa-spin");
+        if (syncBtn) syncBtn.classList.add("opacity-75");
+
+        const response = await fetch(csvUrl);
+        if (!response.ok) throw new Error("Gagal menyambung ke Google Sheet.");
+        const csvText = await response.text();
+
+        parseCsvAndUpdateAllocations(csvText);
+        renderAllCourseTables();
+        renderLecturerSummaryMaster();
+
+        showToast("Data terkini daripada Google Sheet berjaya disegerakkan!", "success");
+      } catch (err) {
+        console.error("GSheet Fetch Error:", err);
+        showToast("Ralat menyambung ke Google Sheet. Sila pastikan helaian di-Publish to Web sebagai format CSV.", "error");
+      } finally {
+        if (syncIcon) syncIcon.classList.remove("fa-spin");
+        if (syncBtn) syncBtn.classList.remove("opacity-75");
+      }
+    }
+
+    function parseCsvAndUpdateAllocations(csvText) {
+      // Robust simple CSV parser handling rows and commas
+      const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+      if (lines.length < 2) return;
+
+      // Extract tokens by scanning cells
+      // Any lecturer code like B-XXX is extracted and mapped based on context if headers exist
+      // Alternatively, we scan allocations matching master lecturer codes
+      lines.forEach((line) => {
+        const cols = line.split(",").map(c => c.replace(/^["']|["']$/g, "").trim().toUpperCase());
+        // Match course rows
+        coursesStructure.forEach(course => {
+          course.classes.forEach((cls, rIdx) => {
+            const groupName = cls.group.toUpperCase();
+            if (cols.includes(groupName)) {
+              const grpColIndex = cols.indexOf(groupName);
+              // Read subsequent columns for CO, T2
+              if (cols[grpColIndex + 1]) {
+                const valCo = cols[grpColIndex + 1];
+                if (masterLecturers.includes(valCo) || valCo.startsWith("B-") || valCo.startsWith("M-")) {
+                  actualAllocations[`${course.id}_${rIdx}_co`] = valCo;
+                }
+              }
+              if (cols[grpColIndex + 2]) {
+                const valT2 = cols[grpColIndex + 2];
+                if (masterLecturers.includes(valT2) || valT2.startsWith("B-") || valT2.startsWith("M-")) {
+                  actualAllocations[`${course.id}_${rIdx}_t2_2h`] = valT2;
+                }
+              }
+            }
+          });
+        });
+      });
+      saveAllocationsToStorage();
+    }
+
+    function renderCourseJamConfigTable() {
+      const tbody = document.getElementById("courseJamConfigBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      Object.keys(courseJamConfig).forEach((code, idx) => {
+        if (code === "KOKU") return;
+        const cfg = courseJamConfig[code];
+        const tr = document.createElement("tr");
+        tr.className = idx % 2 === 0 ? "bg-white" : "bg-amber-50/30";
+        tr.innerHTML = `
+          <td class="text-left px-2 py-0.5 font-bold">
+            <span class="inline-block px-1.5 py-0.5 rounded text-[9.5px] font-black border ${cfg.borderCol} ${cfg.headerBg} text-slate-800">
+              ${code}
+            </span>
+          </td>
+          <td class="py-0.5">
+            <span class="inline-block bg-blue-50 text-blue-900 font-extrabold px-2 py-0.5 rounded border border-blue-200 text-[10px]">
+              ${cfg.co} Jam
+            </span>
+          </td>
+          <td class="py-0.5">
+            <span class="inline-block bg-emerald-50 text-emerald-900 font-extrabold px-2 py-0.5 rounded border border-emerald-200 text-[10px]">
+              ${cfg.t2} Jam
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderMassLectureTable() {
+      const tbody = document.getElementById("massLectureScheduleBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      massLectureSchedule.forEach((item, idx) => {
+        const tr = document.createElement("tr");
+        tr.className = idx % 2 === 0 ? "bg-white" : "bg-slate-50";
+        tr.innerHTML = `
+          <td class="font-bold">${item.hari}</td>
+          <td class="font-mono text-[10px]">${item.masa}</td>
+          <td class="font-extrabold text-indigo-900">${item.tempat}</td>
+          <td class="font-bold text-[10px] text-slate-800">${item.kelas}</td>
+          <td class="text-left px-2 font-black text-blue-900 text-[10.5px]">${item.pensyarah}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function handleCellChange(courseId, rowIdx, slot, val) {
+      const cleanVal = val.trim().toUpperCase();
+      const key = `${courseId}_${rowIdx}_${slot}`;
+
+      if (cleanVal === "") {
+        delete actualAllocations[key];
+      } else {
+        actualAllocations[key] = cleanVal;
+      }
+
+      saveAllocationsToStorage();
+      renderLecturerSummaryMaster();
+    }
+
+    function calculateAllLecturersWorkload() {
+      let stats = {};
+
+      masterLecturers.forEach(code => {
+        stats[code] = {
+          code: code,
+          coHours: 0,
+          t2_4h_Hours: 0,
+          t2_3h_Hours: 0,
+          t2_2h_Hours: 0,
+          kokoHours: 0,
+          totalHours: 0,
+          coBreakdown: {},  // { 'DBM10163': { count: 1, rate: 4 } }
+          t2Breakdown: {}   // { 'DBS10042 2H': { count: 3, rate: 2 } }
+        };
+      });
+
+      // Traverse all allocations in the sheet
+      Object.keys(actualAllocations).forEach(key => {
+        const lec = actualAllocations[key];
+        if (!lec || !stats[lec]) return; // Only calculate for recognized lecturer code
+
+        const parts = key.split("_");
+        const courseId = parts[0];
+        const rowIdx = parseInt(parts[1]);
+        const slot = parts.slice(2).join("_"); // 'co', 't2', 't2_4h', 't2_3h', 't2_2h'
+
+        const cfg = courseJamConfig[courseId] || { co: 3, t2: 2 };
+
+        if (courseId === "KOKU") {
+          // Kokurikulum is counted under KOKO column (2 Jam)
+          stats[lec].kokoHours += 2;
+          const kName = coursesStructure.find(c => c.id === "KOKU").classes[rowIdx].group;
+          const kLabel = `KOKO ${kName}`;
+          if (!stats[lec].coBreakdown[kLabel]) stats[lec].coBreakdown[kLabel] = { count: 0, rate: 2 };
+          stats[lec].coBreakdown[kLabel].count += 1;
+        } 
+        else if (slot === "co") {
+          const rate = cfg.co || 3;
+          stats[lec].coHours += rate;
+          if (!stats[lec].coBreakdown[courseId]) stats[lec].coBreakdown[courseId] = { count: 0, rate: rate };
+          stats[lec].coBreakdown[courseId].count += 1;
+        } 
+        else if (slot === "t2_4h") {
+          stats[lec].t2_4h_Hours += 4;
+          const label = `${courseId} 4H`;
+          if (!stats[lec].t2Breakdown[label]) stats[lec].t2Breakdown[label] = { count: 0, rate: 4 };
+          stats[lec].t2Breakdown[label].count += 1;
+        }
+        else if (slot === "t2_3h") {
+          stats[lec].t2_3h_Hours += 3;
+          const label = `${courseId} 3H`;
+          if (!stats[lec].t2Breakdown[label]) stats[lec].t2Breakdown[label] = { count: 0, rate: 3 };
+          stats[lec].t2Breakdown[label].count += 1;
+        }
+        else if (slot === "t2_2h" || slot === "t2") {
+          stats[lec].t2_2h_Hours += 2;
+          const label = `${courseId} 2H`;
+          if (!stats[lec].t2Breakdown[label]) stats[lec].t2Breakdown[label] = { count: 0, rate: 2 };
+          stats[lec].t2Breakdown[label].count += 1;
+        }
+      });
+
+      // Calculate total hours and generate exact SUBJECT text like screenshot
+      masterLecturers.forEach(code => {
+        const item = stats[code];
+        item.totalHours = item.coHours + item.t2_4h_Hours + item.t2_3h_Hours + item.t2_2h_Hours + item.kokoHours;
+
+        // Build C0 list string
+        const coParts = Object.keys(item.coBreakdown).map(cId => {
+          const b = item.coBreakdown[cId];
+          const totalCourseJam = b.count * b.rate;
+          return `${cId} ×${b.count} (${totalCourseJam} Jam)`;
+        });
+
+        // Build T2 list string
+        const t2Parts = Object.keys(item.t2Breakdown).map(tId => {
+          const b = item.t2Breakdown[tId];
+          const totalCourseJam = b.count * b.rate;
+          return `${tId} ×${b.count} (${totalCourseJam} Jam)`;
+        });
+
+        let subjectStr = "";
+        if (coParts.length > 0) subjectStr += `C0: ${coParts.join(', ')}`;
+        if (t2Parts.length > 0) {
+          subjectStr += (subjectStr ? ' |> ' : '') + `T2: ${t2Parts.join(', ')}`;
+        }
+        if (!subjectStr) subjectStr = "CO: - | T2: -";
+
+        item.subjectString = subjectStr;
+      });
+
+      return stats;
+    }
+
+    function renderLecturerSummaryMaster() {
+      const tbody = document.getElementById("summaryTableBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      const stats = calculateAllLecturersWorkload();
+
+      let sumCo = 0, sumT4 = 0, sumT3 = 0, sumT2 = 0, sumKoko = 0, sumTotal = 0;
+
+      masterLecturers.forEach((code, idx) => {
+        const item = stats[code];
+        sumCo += item.coHours;
+        sumT4 += item.t2_4h_Hours;
+        sumT3 += item.t2_3h_Hours;
+        sumT2 += item.t2_2h_Hours;
+        sumKoko += item.kokoHours;
+        sumTotal += item.totalHours;
+
+        // Row highlighting matching image 3 (e.g. 0 hours or special highlight)
+        let rowClass = idx % 2 === 0 ? "bg-white" : "bg-slate-50";
+        if (item.totalHours === 0) rowClass = "bg-cyan-200 font-semibold"; // B-MGM in screenshot has 0 hours with cyan color
+
+        const tr = document.createElement("tr");
+        tr.className = `${rowClass} hover:bg-amber-100/60 transition`;
+        tr.innerHTML = `
+          <td class="text-center font-bold text-slate-500">${idx + 1}</td>
+          <td class="text-center font-black font-mono text-indigo-950">${item.code}</td>
+          <td class="text-center font-bold ${item.coHours > 0 ? 'text-blue-900 font-extrabold' : 'text-slate-400'}">${item.coHours}</td>
+          <td class="text-center ${item.t2_4h_Hours > 0 ? 'font-black text-slate-900' : 'text-slate-400'}">${item.t2_4h_Hours}</td>
+          <td class="text-center ${item.t2_3h_Hours > 0 ? 'font-black text-slate-900' : 'text-slate-400'}">${item.t2_3h_Hours}</td>
+          <td class="text-center ${item.t2_2h_Hours > 0 ? 'font-black text-emerald-800' : 'text-slate-400'}">${item.t2_2h_Hours}</td>
+          <td class="text-center ${item.kokoHours > 0 ? 'font-black text-purple-900' : 'text-slate-400'}">${item.kokoHours}</td>
+          <td class="text-center font-black text-xs ${item.totalHours >= 16 && item.totalHours <= 20 ? 'bg-emerald-100 text-emerald-950' : 'bg-slate-200 text-slate-950'}">${item.totalHours}</td>
+          <td class="text-left px-2 font-mono text-[10px] text-slate-700 leading-tight">${item.subjectString}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Total Footer row
+      const tfoot = document.createElement("tr");
+      tfoot.className = "bg-slate-300 font-black text-center border-t-2 border-slate-700 text-slate-950";
+      tfoot.innerHTML = `
+        <td colspan="2" class="text-right px-2 py-1">JUMLAH BESAR:</td>
+        <td>${sumCo}</td>
+        <td>${sumT4}</td>
+        <td>${sumT3}</td>
+        <td>${sumT2}</td>
+        <td>${sumKoko}</td>
+        <td class="bg-indigo-900 text-white font-black text-sm">${sumTotal}</td>
+        <td class="text-left px-2 text-[10px]">Purata: ${(sumTotal / masterLecturers.length).toFixed(1)} Jam / Pensyarah</td>
+      `;
+      tbody.appendChild(tfoot);
+
+      // Refresh paginated views if active
+      syncPagesContent();
+    }
+
+    function setViewMode(mode) {
+      const sheetWrap = document.getElementById("view-worksheet-wrapper");
+      const pagesWrap = document.getElementById("view-pages-wrapper");
+      const btnSheet = document.getElementById("btn-view-worksheet");
+      const btnPages = document.getElementById("btn-view-pages");
+
+      if (!sheetWrap || !pagesWrap) return;
+
+      if (mode === "worksheet") {
+        sheetWrap.classList.remove("hidden");
+        pagesWrap.classList.add("hidden");
+        if (btnSheet) {
+          btnSheet.classList.add("bg-indigo-600", "text-white");
+          btnSheet.classList.remove("text-slate-300");
+        }
+        if (btnPages) {
+          btnPages.classList.remove("bg-indigo-600", "text-white");
+          btnPages.classList.add("text-slate-300");
+        }
+      } else {
+        sheetWrap.classList.add("hidden");
+        pagesWrap.classList.remove("hidden");
+        if (btnPages) {
+          btnPages.classList.add("bg-indigo-600", "text-white");
+          btnPages.classList.remove("text-slate-300");
+        }
+        if (btnSheet) {
+          btnSheet.classList.remove("bg-indigo-600", "text-white");
+          btnSheet.classList.add("text-slate-300");
+        }
+        syncPagesContent();
+      }
+    }
+
+    function syncPagesContent() {
+      // Sync semua 4 Lajur Kursus ke dalam Halaman 1 (Halaman Tunggal Kursus)
+      const p1 = document.getElementById("page1-all-courses-container");
+      if (p1) {
+        p1.innerHTML = `
+          <!-- KOLUM 1 -->
+          <div class="space-y-2">
+            ${document.getElementById("table-DBS10042") ? document.getElementById("table-DBS10042").innerHTML : ''}
+            ${document.getElementById("table-DBM10252") ? document.getElementById("table-DBM10252").innerHTML : ''}
+            ${document.getElementById("table-DBM10202") ? document.getElementById("table-DBM10202").innerHTML : ''}
+          </div>
+
+          <!-- KOLUM 2 -->
+          <div class="space-y-2">
+            ${document.getElementById("table-DBM10163") ? document.getElementById("table-DBM10163").innerHTML : ''}
+            ${document.getElementById("table-DBM20233") ? document.getElementById("table-DBM20233").innerHTML : ''}
+            <div class="border border-slate-700 bg-white p-2 text-[10px] space-y-1.5 shadow-xs">
+              <div class="font-black text-slate-800 border-b pb-1">PETUNJUK:</div>
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-3.5 bg-yellow-300 border border-slate-400 inline-block shrink-0"></span>
+                <span class="font-bold text-[9.5px]">PENSYARAH 4 KELAS</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-3.5 bg-cyan-400 border border-slate-400 inline-block shrink-0"></span>
+                <span class="font-bold text-[9.5px]">KELAS CARRY JMSK</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-3.5 bg-purple-200 border border-slate-400 inline-block shrink-0"></span>
+                <span class="font-bold text-[9.5px]">KELAS MASS LECTURE</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-3.5 bg-slate-200 border border-slate-400 inline-block shrink-0"></span>
+                <span class="font-bold text-[9.5px]">PENSYARAH INDUK</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- KOLUM 3 -->
+          <div class="space-y-2">
+            ${document.getElementById("table-DBM20173") ? document.getElementById("table-DBM20173").innerHTML : ''}
+            ${document.getElementById("table-DBM30243") ? document.getElementById("table-DBM30243").innerHTML : ''}
+            ${document.getElementById("table-KOKU") ? document.getElementById("table-KOKU").innerHTML : ''}
+          </div>
+
+          <!-- KOLUM 4: Termasuk Kotak Rujukan Kadar Jam di Bawah Kanan -->
+          <div class="space-y-2">
+            ${document.getElementById("table-DBM30183") ? document.getElementById("table-DBM30183").innerHTML : ''}
+            ${document.getElementById("table-DBM30193") ? document.getElementById("table-DBM30193").innerHTML : ''}
+            ${document.getElementById("table-DBM30033") ? document.getElementById("table-DBM30033").innerHTML : ''}
+            ${document.getElementById("table-DBM30043") ? document.getElementById("table-DBM30043").innerHTML : ''}
+            ${document.getElementById("box-kadar-jam") ? document.getElementById("box-kadar-jam").outerHTML : ''}
+          </div>
+        `;
+      }
+
+      // Sync Halaman 2: Jadual Rumusan Pensyarah & Jadual Kuliah Berpusat
+      const p2 = document.getElementById("page2-summary-container");
+      if (p2) {
+        p2.innerHTML = `
+          <div class="border border-slate-700 bg-white p-2 shadow-xs">
+            <h4 class="font-black text-xs uppercase mb-2 text-indigo-950 flex items-center gap-1.5">
+              <i class="fa-solid fa-list-ol text-indigo-600"></i> RUMUSAN KOD PENSYARAH & JUMLAH JAM PENGAJARAN (AUTO-CALCULATED)
+            </h4>
+            <div class="overflow-x-auto">
+              ${document.getElementById("lecturerSummaryMasterTable") ? document.getElementById("lecturerSummaryMasterTable").outerHTML : ''}
+            </div>
+          </div>
+          <div class="border border-slate-700 bg-white p-2 mt-3 shadow-xs">
+            <h4 class="font-black text-xs uppercase mb-2 text-indigo-950 flex items-center gap-1.5">
+              <i class="fa-solid fa-chalkboard-user text-indigo-600"></i> JADUAL KULIAH BERPUSAT (MASS LECTURE) - BILIK MKEJ
+            </h4>
+            <div class="overflow-x-auto">
+              <table class="excel-table w-full text-center">
+                <thead>
+                  <tr class="bg-slate-200 font-black">
+                    <th class="w-14">HARI</th>
+                    <th class="w-20">MASA</th>
+                    <th class="w-14">TEMPAT</th>
+                    <th class="w-20">KELAS</th>
+                    <th class="text-left px-2">PENSYARAH TERLIBAT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${document.getElementById("massLectureScheduleBody") ? document.getElementById("massLectureScheduleBody").innerHTML : ''}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function saveAllocationsToStorage() {
+      try {
+        localStorage.setItem("ppd_jmsk_allocations_sheet_actual", JSON.stringify(actualAllocations));
+      } catch (e) {
+        console.warn("Storage warning:", e);
+      }
+    }
+
+    function loadSavedAllocations() {
+      try {
+        const saved = localStorage.getItem("ppd_jmsk_allocations_sheet_actual");
+        if (saved) {
+          actualAllocations = JSON.parse(saved);
+        } else {
+          actualAllocations = getPreloadedActualData();
+        }
+      } catch (e) {
+        actualAllocations = getPreloadedActualData();
+      }
+    }
+
+    function loadDefaultActualData() {
+      if (confirm("Adakah anda ingin memuatkan semula data sebenar mengikut gambar edaran semester?")) {
+        actualAllocations = getPreloadedActualData();
+        saveAllocationsToStorage();
+        renderAllCourseTables();
+        renderLecturerSummaryMaster();
+      }
+    }
+
+    function clearAllData() {
+      if (confirm("Adakah anda pasti mahu mengosongkan semua isian pensyarah dalam jadual?")) {
+        actualAllocations = {};
+        saveAllocationsToStorage();
+        renderAllCourseTables();
+        renderLecturerSummaryMaster();
+      }
+    }
+
+    // Initialize application on load
+    window.addEventListener("DOMContentLoaded", () => {
+      checkAdminSession();
+      loadSavedAllocations();
+      renderAllCourseTables();
+      renderCourseJamConfigTable();
+      renderMassLectureTable();
+      renderLecturerSummaryMaster();
+
+      // Set default mode to Pages (Mod Halaman) as requested
+      setViewMode('pages');
+
+      // If Google Sheet URL exists, automatically sync latest data
+      if (localStorage.getItem(GSHEET_STORAGE_KEY)) {
+        fetchFromGoogleSheet();
+      }
+    });
+  </script>
+
+  <!-- Datalist for Auto-Suggestion when typing lecturer codes -->
+  <datalist id="lecturer-datalist">
+    <option value="B-AAA">
+    <option value="B-AMY">
+    <option value="B-ABE">
+    <option value="B-FBM">
+    <option value="B-HSI">
+    <option value="B-JGM">
+    <option value="B-JBI">
+    <option value="B-LKT">
+    <option value="B-MZM">
+    <option value="B-JAZ">
+    <option value="B-MSP">
+    <option value="B-NSH">
+    <option value="B-NAS">
+    <option value="B-AIN">
+    <option value="B-NAZ">
+    <option value="B-NHMY">
+    <option value="B-ROS">
+    <option value="B-RAR">
+    <option value="B-SFK">
+    <option value="B-SMR">
+    <option value="B-SBR">
+    <option value="B-SBN">
+    <option value="B-TYC">
+    <option value="B-ZBH">
+    <option value="B-ZBD">
+    <option value="B-ZAK">
+    <option value="B-HBH">
+    <option value="B-FBA">
+    <option value="B-ALZ">
+    <option value="B-NAK">
+    <option value="B-MGM">
+    <option value="B-AHA">
+    <option value="M-MGS">
+    <option value="M-NAM">
+    <option value="M-WWM">
+  </datalist>
+
+</body>
+</html>
