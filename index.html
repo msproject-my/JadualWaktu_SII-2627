@@ -65,10 +65,21 @@
         box-shadow: none !important;
         border: none !important;
       }
+      .print-page1-layout {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 6px !important;
+        align-items: flex-start !important;
+      }
       .print-grid-cols-4 {
         display: grid !important;
         grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-        gap: 6px !important;
+        gap: 5px !important;
+        flex: 1 1 0% !important;
+      }
+      .print-sidebar-edge {
+        width: 175px !important;
+        flex-shrink: 0 !important;
       }
     }
   </style>
@@ -97,7 +108,7 @@
       <!-- Action & View Controls -->
       <div class="flex items-center flex-wrap gap-2 text-xs">
         <!-- Live GSheet Status Indicator & Sync (Visible to both) -->
-        <button onclick="fetchFromGoogleSheet()" id="btn-sync-gsheet" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded font-bold flex items-center gap-1.5 shadow transition">
+        <button onclick="fetchFromGoogleSheet(true)" id="btn-sync-gsheet" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded font-bold flex items-center gap-1.5 shadow transition">
           <i class="fa-solid fa-arrows-rotate" id="sync-icon"></i> Segar Semula (Sync)
         </button>
 
@@ -185,21 +196,66 @@
       </div>
       <div class="space-y-4 my-4 text-xs">
         <p class="text-slate-600 leading-relaxed">
-          Masukkan pautan <strong>Publish to web (format CSV)</strong> daripada Google Sheet agihan. Semua pensyarah yang membuka portal akan melihat data terkini ini secara paparan sahaja.
+          Pilih salah satu cara pautan di bawah. Pautan ini akan dibaca secara automatik untuk memaparkan data terkini kepada semua pensyarah.
         </p>
 
-        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1.5 text-[11px] text-slate-700">
-          <span class="font-bold text-slate-900 block">Cara dapatkan link CSV dari Google Sheets anda:</span>
-          <div>1. Buka Google Sheet agihan jadual anda.</div>
-          <div>2. Klik <strong>File &gt; Share &gt; Publish to web</strong>.</div>
-          <div>3. Pilih Sheet/Helaian berkenaan, ubah <i>Web page</i> kepada <strong>Comma-separated values (.csv)</strong>.</div>
-          <div>4. Klik <strong>Publish</strong> dan salin pautan URL tersebut ke kotak di bawah.</div>
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2 text-[11px] text-slate-700">
+          <span class="font-bold text-slate-900 block flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check text-emerald-600"></i> Cara Paling Mudah (Pautan Biasa):
+          </span>
+          <div>1. Buka Google Sheet agihan anda.</div>
+          <div>2. Klik butang <strong class="text-indigo-600">Share</strong> (Kongsikan) di bucu kanan atas.</div>
+          <div>3. Tukar <i>General access</i> kepada: <strong class="bg-emerald-100 text-emerald-800 px-1 py-0.5 rounded">Anyone with the link (Viewer)</strong>.</div>
+          <div>4. Salin URL pelayar biasa anda dan tampal di bawah.</div>
         </div>
 
         <div>
-          <label class="block font-bold text-slate-700 mb-1">Pautan CSV Google Sheet:</label>
-          <input type="text" id="input-gsheet-url" placeholder="https://docs.google.com/spreadsheets/d/e/.../pub?output=csv"
+          <label class="block font-bold text-slate-700 mb-1">Pautan Google Sheet (URL Biasa atau Publish CSV):</label>
+          <input type="text" id="input-gsheet-url" placeholder="https://docs.google.com/spreadsheets/d/.../edit"
             class="w-full border border-slate-300 rounded px-3 py-2 text-xs font-mono focus:border-indigo-500 focus:outline-hidden" />
+          <div id="gsheet-sync-status-detail" class="mt-2 text-[10.5px] text-slate-500 space-y-1.5 bg-slate-50 p-2.5 rounded border border-slate-200">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-700 flex items-center gap-1">
+                <i class="fa-solid fa-signal text-emerald-600"></i> Status Pautan Semasa:
+              </span>
+              <span id="gsheet-current-detected-type" class="font-mono text-[9.5px] bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded font-bold">
+                Belum ditetapkan
+              </span>
+            </div>
+            <div class="text-[10px] text-slate-600 leading-relaxed border-t border-slate-200 pt-1.5">
+              <strong class="text-amber-800 flex items-center gap-1 mb-0.5">
+                <i class="fa-solid fa-clock-rotate-left"></i> Peringatan Penting Berkaitan Pautan "pub?output=csv":
+              </strong>
+              Pelayan Google menetapkan <em>cache</em> selama <strong>5 hingga 15 minit</strong> bagi pautan <code>/pub?output=csv</code>. Jika anda baru sahaja mengedit Google Sheet, Google belum menghantar perubahan tersebut ke pautan <code>pub</code> sehingga tempoh 5-15 minit tamat.
+              <br><br>
+              <strong class="text-emerald-800 flex items-center gap-1 mb-0.5">
+                <i class="fa-solid fa-bolt text-amber-500"></i> Cadangan Terbaik (Kemas Kini 0-Saat Serta Merta):
+              </strong>
+              Gunakan <strong>URL pelayar biasa</strong> daripada address bar Google Sheet anda (<code class="text-indigo-700 bg-white px-1 py-0.5 rounded border">https://docs.google.com/spreadsheets/d/ID_GSHEET/edit#gid=...</code>) dan setkan kebenaran <em>Share</em> kepada <em>"Anyone with the link can view"</em>.
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnostic / Raw CSV inspection -->
+        <div class="pt-1">
+          <button type="button" onclick="testAndDiagnoseGSheet()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 px-2 rounded text-[11px] border border-slate-300 flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-stethoscope text-indigo-600"></i> Uji Sambungan &amp; Semak Kandungan Mentah CSV
+          </button>
+          <div id="diagnostic-preview-box" class="hidden mt-2 p-2 bg-slate-900 text-emerald-400 font-mono text-[9px] rounded max-h-36 overflow-y-auto whitespace-pre-wrap break-all border border-slate-700"></div>
+        </div>
+
+        <!-- Optional: Manual Paste Fallback in case Google API is blocked by college firewall -->
+        <div class="pt-2 border-t border-slate-200">
+          <details class="cursor-pointer">
+            <summary class="font-bold text-slate-700 hover:text-indigo-600">Pilihan Sandaran: Tampal Data Terus (Jika Rangkaian Sekat GSheet)</summary>
+            <div class="mt-2 space-y-2">
+              <p class="text-[10.5px] text-slate-500">Jika wifi kolej menyekat sambungan terus, anda boleh salin (Ctrl+A &amp; Ctrl+C) jadual di Google Sheet dan tampal di bawah:</p>
+              <textarea id="input-manual-paste" rows="3" placeholder="Tampal teks salinan Google Sheet / CSV di sini..." class="w-full border border-slate-300 rounded p-2 text-[10px] font-mono"></textarea>
+              <button onclick="handleManualPasteData()" class="px-3 py-1 rounded bg-indigo-600 text-white text-[11px] font-bold hover:bg-indigo-500">
+                <i class="fa-solid fa-paste mr-1"></i> Proses Data Tampalan
+              </button>
+            </div>
+          </details>
         </div>
 
         <!-- Optional: Change Admin Password -->
@@ -237,42 +293,59 @@
           <div id="table-DBM10202"></div>
         </div>
 
-        <!-- KOLUM 2: DBM10163, DBM20233 & PETUNJUK -->
+        <!-- KOLUM 2: DBM10163, DBM20233, KOKURIKULUM & PETUNJUK -->
         <div class="w-[310px] space-y-3 shrink-0">
           <div id="table-DBM10163"></div>
           <div id="table-DBM20233"></div>
+          <div id="table-KOKU"></div>
 
-          <!-- Petunjuk Warna Mengikut Lembaran Sebenar -->
-          <div class="border border-slate-700 bg-white p-2.5 text-[11px] space-y-2 rounded shadow-xs">
-            <div class="font-black text-slate-900 border-b pb-1 text-xs">PETUNJUK KELAS / PENSYARAH:</div>
-            <div class="flex items-center gap-2">
-              <span class="w-7 h-4 bg-yellow-300 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
-              <span class="font-bold text-[10px] text-slate-800">PENSYARAH (UTAMA/CO) 4 KELAS</span>
+          <!-- Petunjuk Warna Mengikut Lembaran Sebenar (Diasingkan kemas) -->
+          <div id="box-petunjuk" class="border-2 border-slate-700 bg-white p-2.5 text-[11px] space-y-2 rounded-lg shadow-xs">
+            <div class="bg-slate-800 text-white font-black text-center text-xs py-1 px-2 rounded flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-palette text-amber-300"></i>
+              <span>PETUNJUK KOD WARNA</span>
             </div>
-            <div class="flex items-center gap-2">
-              <span class="w-7 h-4 bg-cyan-400 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
-              <span class="font-bold text-[10px] text-cyan-950">KELAS CARRY JMSK</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-7 h-4 bg-purple-200 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
-              <span class="font-bold text-[10px] text-purple-950">KELAS MASS LECTURE</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="w-7 h-4 bg-slate-200 border border-slate-400 inline-block shrink-0 rounded-xs"></span>
-              <span class="font-bold text-[10px] text-slate-700">PENSYARAH JABATAN INDUK</span>
+            <div class="space-y-1.5 pt-1">
+              <div class="flex items-center gap-2 bg-yellow-50 p-1.5 rounded border border-yellow-200">
+                <span class="w-6 h-4.5 bg-yellow-300 border border-amber-500 inline-block shrink-0 rounded-xs shadow-2xs"></span>
+                <div>
+                  <span class="font-black text-[10px] text-amber-950 block leading-tight">PENSYARAH 4 KELAS</span>
+                  <span class="text-[8.5px] text-amber-800">Pensyarah (Utama/CO) 4 kelas</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 bg-cyan-50 p-1.5 rounded border border-cyan-200">
+                <span class="w-6 h-4.5 bg-cyan-400 border border-cyan-600 inline-block shrink-0 rounded-xs shadow-2xs"></span>
+                <div>
+                  <span class="font-black text-[10px] text-cyan-950 block leading-tight">KELAS CARRY JMSK</span>
+                  <span class="text-[8.5px] text-cyan-800">Pelajar ulang kursus</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 bg-purple-50 p-1.5 rounded border border-purple-200">
+                <span class="w-6 h-4.5 bg-purple-200 border border-purple-400 inline-block shrink-0 rounded-xs shadow-2xs"></span>
+                <div>
+                  <span class="font-black text-[10px] text-purple-950 block leading-tight">MASS LECTURE</span>
+                  <span class="text-[8.5px] text-purple-800">Kuliah Berpusat (MKEJ)</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded border border-slate-300">
+                <span class="w-6 h-4.5 bg-slate-300 border border-slate-400 inline-block shrink-0 rounded-xs shadow-2xs"></span>
+                <div>
+                  <span class="font-black text-[10px] text-slate-800 block leading-tight">JABATAN INDUK</span>
+                  <span class="text-[8.5px] text-slate-600">Pensyarah jabatan luar</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- KOLUM 3: DBM20173, DBM30243, KOKURIKULUM -->
+        <!-- KOLUM 3: DBM20173 -->
         <div class="w-[300px] space-y-3 shrink-0">
           <div id="table-DBM20173"></div>
-          <div id="table-DBM30243"></div>
-          <div id="table-KOKU"></div>
         </div>
 
-        <!-- KOLUM 4: DBM30183, DBM30193, DBM30033, DBM30043 & RUJUKAN KADAR JAM (RUANGAN BAWAH KANAN) -->
+        <!-- KOLUM 4: DBM30243 (NUMERICAL ANALYSIS), DBM30183, DBM30193, DBM30033, DBM30043 & RUJUKAN KADAR JAM -->
         <div class="w-[300px] space-y-3 shrink-0">
+          <div id="table-DBM30243"></div>
           <div id="table-DBM30183"></div>
           <div id="table-DBM30193"></div>
           <div id="table-DBM30033"></div>
@@ -364,8 +437,8 @@
     <!-- ========================================================================= -->
     <div id="view-pages-wrapper" class="hidden space-y-6">
 
-      <!-- HALAMAN 1 DARI 2: SEMUA KURSUS (GABUNGAN PENUH 4 LAJUR KURSUS) -->
-      <section class="bg-white p-4 max-w-[1400px] mx-auto rounded-lg shadow border border-slate-300 a4-print-box page-break">
+      <!-- HALAMAN 1 DARI 2: SEMUA KURSUS (GABUNGAN PENUH 4 LAJUR KURSUS DENGAN PANEL TEPI) -->
+      <section class="bg-white p-4 max-w-[1450px] mx-auto rounded-lg shadow border border-slate-300 a4-print-box page-break">
         <div class="text-center pb-2 mb-3 border-b border-slate-400 flex justify-between items-center">
           <div class="text-left">
             <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">JABATAN MATEMATIK, SAINS & KOMPUTER</span>
@@ -380,9 +453,19 @@
           </div>
         </div>
 
-        <!-- 4 Kolum Kursus Selaras Mengikut Lembaran Sebenar -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 print-grid-cols-4 gap-2.5 items-start" id="page1-all-courses-container">
-          <!-- Populated via syncPagesContent() -->
+        <!-- Susun Atur Halaman 1: Jadual Kursus di Kiri (4 Kolum) & Panel Petunjuk / Rujukan di Tepi Kanan -->
+        <div class="flex flex-col xl:flex-row print-page1-layout gap-3 items-start" id="page1-main-layout">
+          
+          <!-- 4 Kolum Kursus (Semata-mata Jadual Kursus Tanpa Gangguan Petunjuk) -->
+          <div class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 print-grid-cols-4 gap-2.5 items-start" id="page1-all-courses-container">
+            <!-- Populated via syncPagesContent() -->
+          </div>
+
+          <!-- Panel Tepi Khas: Petunjuk & Rujukan Kadar Jam (Berasingan di tepi) -->
+          <div class="w-full xl:w-56 shrink-0 print-sidebar-edge space-y-3" id="page1-side-panel">
+            <!-- Populated via syncPagesContent() -->
+          </div>
+
         </div>
       </section>
 
@@ -417,89 +500,62 @@
       "DBS10042": { co: 3, t2: 2, name: "ENGINEERING SCIENCE", headerBg: "bg-pink-100", borderCol: "border-pink-300" },
       "DBM10163": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 1", headerBg: "bg-sky-100", borderCol: "border-sky-300" },
       "DBM10202": { co: 3, t2: 2, name: "ELEMENTARY MATHEMATICS", headerBg: "bg-blue-100", borderCol: "border-blue-300" },
-      "DBM20233": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS (ELEKTRIK)", headerBg: "bg-teal-100", borderCol: "border-teal-300" },
-      "DBM10252": { co: 3, t2: 2, name: "BASIC MATHEMATICS(ELEKTRIK/MEKANIKAL)", headerBg: "bg-blue-100", borderCol: "border-blue-300" },
+      "DBM20233": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS", headerBg: "bg-teal-100", borderCol: "border-teal-300" },
+      "DBM10252": { co: 3, t2: 2, name: "BASIC MATHEMATICS", headerBg: "bg-blue-100", borderCol: "border-blue-300" },
       "DBM20173": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 2", headerBg: "bg-indigo-100", borderCol: "border-indigo-300" },
       "DBM30243": { co: 4, t2: 2, name: "NUMERICAL ANALYSIS", headerBg: "bg-slate-200", borderCol: "border-slate-400" },
       "DBM30183": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 3", headerBg: "bg-amber-100", borderCol: "border-amber-300" },
-      "DBM30193": { co: 4, t2: 2, name: "ELECTRICAL ENGINEERING MATHEMATICS", headerBg: "bg-cyan-100", borderCol: "border-cyan-300" },
+      "DBM30193": { co: 4, t2: 2, name: "ELECTRICAL ENGINEERING", headerBg: "bg-cyan-100", borderCol: "border-cyan-300" },
       "DBM30033": { co: 4, t2: 2, name: "ENGINEERING MATHEMATICS 3", headerBg: "bg-orange-100", borderCol: "border-orange-300" },
       "DBM30043": { co: 4, t2: 2, name: "ELECTRICAL ENGINEERING MATHEMATICS", headerBg: "bg-lime-100", borderCol: "border-lime-300" },
       "KOKU":     { co: 2, t2: 2, name: "KOKURIKULUM", headerBg: "bg-purple-100", borderCol: "border-purple-300" }
     };
 
-    // 2. SENARAI KURSUS & KELAS TEPAT SEPERTI GAMBAR
-    const coursesStructure = [
+    // 2. SENARAI KURSUS & KELAS TERKINI MENGIKUT GOOGLE SHEET SEBENAR (GAMBAR TERBARU)
+    let coursesStructure = [
       {
         id: "DBS10042",
         columns: ["KURSUS", "CO", "T2 (3H)", "T2 (2H)"],
         classes: [
-          { group: "DKA1A", special: "" },
-          { group: "DKA1B", special: "" },
-          { group: "DKA1C", special: "" },
-          { group: "DKA1D", special: "" },
-          { group: "DKA1E", special: "yellow" },
-          { group: "DKA1F", special: "" },
-          { group: "DKA1G", special: "" },
-          { group: "DKA1H", special: "" },
-          { group: "DTK1A", special: "" },
-          { group: "DTK1B", special: "" },
-          { group: "DTK1C", special: "yellow" },
-          { group: "DEP1A", special: "" },
-          { group: "DEP1B", special: "" },
-          { group: "DEP1C", special: "" },
-          { group: "DEG1A", special: "" },
-          { group: "DEG1B", special: "" },
-          { group: "DEG1C", special: "" },
-          { group: "DEQ1A", special: "" },
-          { group: "DEQ1B", special: "" },
           { group: "DET2A", special: "" },
           { group: "DET2B", special: "" },
+          { group: "DET2C", special: "" },
+          { group: "DET2D", special: "" },
+          { group: "DKA1A", special: "" },
+          { group: "DTK1A", special: "" },
+          { group: "DEP1A", special: "" },
+          { group: "DEQ1A", special: "" },
+          { group: "DEG1A", special: "" },
           { group: "DKM1A", special: "" },
-          { group: "DKM1B", special: "" },
           { group: "DAD1A", special: "" },
-          { group: "DAD1B", special: "" },
-          { group: "DAD1C", special: "" },
-          { group: "DAD1D", special: "induk" },
-          { group: "DAD1E", special: "" },
           { group: "DTP1A", special: "" },
-          { group: "DTP1B", special: "" },
-          { group: "DTP1C", special: "" },
           { group: "DEM1A", special: "" },
-          { group: "CYDBS10042(A)", special: "cyan" },
-          { group: "CYDBS10042(B)", special: "cyan" }
+          { group: "CYDBM10042 (A)", special: "cyan" },
+          { group: "CYDBM10042 (B)", special: "cyan" },
+          { group: "CYDBM10042 (C)", special: "cyan" }
         ]
       },
       {
         id: "DBM10163",
         columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
         classes: [
+          { group: "DEP2A", special: "" },
+          { group: "DEP2B", special: "" },
+          { group: "DEP2C", special: "" },
+          { group: "DTP2A", special: "" },
+          { group: "DTP2B", special: "" },
+          { group: "DTP2C", special: "" },
           { group: "DKA1A", special: "" },
-          { group: "DKA1B", special: "" },
-          { group: "DKA1C", special: "" },
-          { group: "DKA1D", special: "" },
-          { group: "DKA1E", special: "yellow" },
-          { group: "DKA1F", special: "" },
-          { group: "DKA1G", special: "" },
-          { group: "DKA1H", special: "" },
           { group: "DTK1A", special: "" },
-          { group: "DTK1B", special: "" },
-          { group: "DTK1C", special: "" },
-          { group: "DEP1A/1B/1C|DTP1A/1B/1C|DKM1C", special: "mass" },
-          { group: "DEG1A", special: "" },
-          { group: "DEG1B", special: "" },
-          { group: "DEG1C", special: "" },
+          { group: "DEP1A", special: "" },
           { group: "DEQ1A", special: "" },
-          { group: "DEQ1B", special: "" },
+          { group: "DEG1A", special: "" },
           { group: "DKM1A", special: "" },
-          { group: "DKM1B", special: "" },
           { group: "DAD1A", special: "" },
-          { group: "DAD1B", special: "" },
-          { group: "DAD1C", special: "" },
-          { group: "DAD1D", special: "induk" },
-          { group: "DAD1E", special: "" },
+          { group: "DTP1A", special: "" },
           { group: "DEM1A", special: "" },
-          { group: "CYDBM10163", special: "cyan" }
+          { group: "CYDBM10163 (A)", special: "cyan" },
+          { group: "CYDBM10163 (B)", special: "cyan" }
         ]
       },
       {
@@ -507,8 +563,7 @@
         columns: ["KURSUS", "CO", "T2(3H)", "T2(2H)"],
         classes: [
           { group: "DSB1A", special: "" },
-          { group: "DSB1B", special: "" },
-          { group: "DSB1C", special: "" }
+          { group: "CYDBM10202", special: "cyan" }
         ]
       },
       {
@@ -516,9 +571,7 @@
         columns: ["KURSUS", "CO", "T2(4H)", "T2(2H)"],
         classes: [
           { group: "DET1A", special: "" },
-          { group: "DET1B", special: "" },
-          { group: "DET1C", special: "" },
-          { group: "DET1D", special: "" }
+          { group: "CYDBM20233", special: "cyan" }
         ]
       },
       {
@@ -526,22 +579,41 @@
         columns: ["KURSUS", "CO", "T2(3H)", "T2(2H)"],
         classes: [
           { group: "DEP1A", special: "" },
-          { group: "DEP1B", special: "" },
-          { group: "DEP1C", special: "" },
-          { group: "DTP1A", special: "" },
-          { group: "DTP1B", special: "" },
-          { group: "DTP1C", special: "induk" }
+          { group: "DTP1A", special: "" }
         ]
       },
       {
         id: "DBM20173",
         columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
         classes: [
-          { group: "DKA2A/DTK2A/DEG2A/DEQ2A", special: "" },
-          { group: "DAD2A/DKM2A", special: "" },
-          { group: "CYDBM20173 (A)", special: "" },
-          { group: "CYDBM20173 (B)", special: "" },
-          { group: "CYDBM20173 (C)", special: "" }
+          { group: "DKA2A", special: "" },
+          { group: "DKA2B", special: "" },
+          { group: "DKA2C", special: "" },
+          { group: "DKA2D", special: "" },
+          { group: "DKA2E", special: "" },
+          { group: "DKA2F", special: "" },
+          { group: "DKA2G", special: "" },
+          { group: "DKA2H", special: "" },
+          { group: "DTK2A", special: "" },
+          { group: "DTK2B", special: "" },
+          { group: "DTK2C", special: "" },
+          { group: "DEP2A/DEP2B/DEP2C", special: "mass" },
+          { group: "DEG2A", special: "" },
+          { group: "DEG2B", special: "" },
+          { group: "DEG2C", special: "" },
+          { group: "DEQ2A", special: "" },
+          { group: "DEQ2B", special: "" },
+          { group: "DKM2A", special: "" },
+          { group: "DKM2B", special: "" },
+          { group: "DKM2C/DTP2A", special: "" },
+          { group: "DAD2A", special: "" },
+          { group: "DAD2B", special: "" },
+          { group: "DAD2C", special: "" },
+          { group: "DAD2D", special: "" },
+          { group: "DAD2E", special: "" },
+          { group: "DEM2A", special: "" },
+          { group: "CYDBM20173 (A)", special: "cyan" },
+          { group: "CYDBM20173 (B)", special: "cyan" }
         ]
       },
       {
@@ -549,7 +621,10 @@
         columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
         classes: [
           { group: "DET2A", special: "" },
-          { group: "DET2B", special: "" }
+          { group: "DET2B", special: "" },
+          { group: "DET2C", special: "" },
+          { group: "DET2D", special: "" },
+          { group: "CYDBM30243", special: "cyan" }
         ]
       },
       {
@@ -557,7 +632,6 @@
         columns: ["KURSUS", "CO", "T2"],
         classes: [
           { group: "MPU24161", name: "WATANIAH", special: "" },
-          { group: "MPU24261", name: "PENGAKAP", special: "" },
           { group: "MPU24041", name: "KELAB", special: "" }
         ]
       },
@@ -565,32 +639,17 @@
         id: "DBM30183",
         columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
         classes: [
-          { group: "DKM3A", special: "" },
-          { group: "DKM3B", special: "" },
-          { group: "DKM3C", special: "" },
-          { group: "DKM3D", special: "" },
-          { group: "DAD3A", special: "" },
-          { group: "DAD3B", special: "" },
-          { group: "DAD3C", special: "" },
-          { group: "DAD3D", special: "" },
-          { group: "DAD3E", special: "" },
-          { group: "DTP3A", special: "" },
-          { group: "DEM3A", special: "" }
+          { group: "DAD3A/DKM3A", special: "" },
+          { group: "CYDBM30183 (A)", special: "cyan" },
+          { group: "CYDBM30183 (B)", special: "cyan" }
         ]
       },
       {
         id: "DBM30193",
         columns: ["KURSUS", "CO", "T2 (4H)", "T2 (2H)"],
         classes: [
-          { group: "DTK3A", special: "" },
-          { group: "DTK3B", special: "" },
-          { group: "DEG3A", special: "" },
-          { group: "DEG3B", special: "" },
-          { group: "DEQ3A", special: "" },
-          { group: "DEQ3B", special: "" },
-          { group: "DEQ3C", special: "" },
-          { group: "DEQ3D", special: "" },
-          { group: "DEP3A", special: "" }
+          { group: "DTK3A/DEG3A/DEQ3A", special: "" },
+          { group: "CYDBM30193", special: "cyan" }
         ]
       },
       {
@@ -604,7 +663,7 @@
         id: "DBM30043",
         columns: ["KURSUS", "CO", "T2(4H)", "T2(2H)"],
         classes: [
-          { group: "CYDBM30343", special: "cyan" }
+          { group: "CYDBM30043", special: "cyan" }
         ]
       }
     ];
@@ -633,130 +692,8 @@
     let actualAllocations = {};
 
     function getPreloadedActualData() {
-      return {
-        // DBS10042
-        "DBS10042_0_co": "B-AIN", "DBS10042_0_t2_2h": "B-NHMY",
-        "DBS10042_1_co": "B-JGM", "DBS10042_1_t2_2h": "B-ALZ",
-        "DBS10042_2_co": "B-AIN", "DBS10042_2_t2_2h": "B-NAK",
-        "DBS10042_3_co": "B-SBN", "DBS10042_3_t2_2h": "B-ZAK",
-        "DBS10042_4_co": "B-HSI", "DBS10042_4_t2_2h": "B-NAS",
-        "DBS10042_5_co": "B-ZAK", "DBS10042_5_t2_2h": "B-SBN",
-        "DBS10042_6_co": "B-SMR", "DBS10042_6_t2_2h": "B-ZBD",
-        "DBS10042_7_co": "B-SBN", "DBS10042_7_t2_2h": "B-ZAK",
-        "DBS10042_8_co": "B-NAS", "DBS10042_8_t2_2h": "B-SMR",
-        "DBS10042_9_co": "B-ZBD", "DBS10042_9_t2_2h": "B-SBN",
-        "DBS10042_10_co": "B-AIN", "DBS10042_10_t2_2h": "B-AAA",
-        "DBS10042_11_co": "B-AHA", "DBS10042_11_t2_2h": "B-HSI",
-        "DBS10042_12_co": "B-SBN", "DBS10042_12_t2_2h": "B-ALZ",
-        "DBS10042_13_co": "B-MSP", "DBS10042_13_t2_2h": "B-AHA",
-        "DBS10042_14_co": "B-RAR", "DBS10042_14_t2_2h": "B-NAS",
-        "DBS10042_15_co": "B-NAK", "DBS10042_15_t2_2h": "B-ROS",
-        "DBS10042_16_co": "B-ALZ", "DBS10042_16_t2_2h": "B-ZBD",
-        "DBS10042_17_co": "B-NAK", "DBS10042_17_t2_2h": "B-HSI",
-        "DBS10042_18_co": "B-ZBD", "DBS10042_18_t2_2h": "B-NAS",
-        "DBS10042_19_co": "B-MZM", "DBS10042_19_t2_2h": "B-AHA",
-        "DBS10042_20_co": "B-ZAK", "DBS10042_20_t2_2h": "B-SBN",
-        "DBS10042_21_co": "B-HSI", "DBS10042_21_t2_2h": "B-MZM",
-        "DBS10042_22_co": "B-JGM", "DBS10042_22_t2_2h": "B-ZAK",
-        "DBS10042_23_co": "B-MSP", "DBS10042_23_t2_2h": "B-SMR",
-        "DBS10042_24_co": "B-ALZ", "DBS10042_24_t2_2h": "B-JGM",
-        "DBS10042_25_co": "B-SMR", "DBS10042_25_t2_2h": "B-ROS",
-        "DBS10042_26_co": "M-NAM", "DBS10042_26_t2_2h": "B-ROS",
-        "DBS10042_27_co": "B-NAS", "DBS10042_27_t2_2h": "B-AIN",
-        "DBS10042_28_co": "B-ZAK", "DBS10042_28_t2_2h": "B-AAA",
-        "DBS10042_29_co": "B-NHMY", "DBS10042_29_t2_2h": "B-MZM",
-        "DBS10042_30_co": "B-SMR", "DBS10042_30_t2_2h": "B-NAK",
-        "DBS10042_31_co": "B-NAK", "DBS10042_31_t2_2h": "B-AIN",
-        "DBS10042_32_co": "B-AHA", "DBS10042_32_t2_2h": "B-AAA",
-        "DBS10042_33_co": "B-HSI", "DBS10042_33_t2_2h": "B-ZAK",
-
-        // DBM10163
-        "DBM10163_0_co": "B-ALZ", "DBM10163_0_t2_2h": "B-JGM",
-        "DBM10163_1_co": "B-ROS", "DBM10163_1_t2_2h": "B-FBA",
-        "DBM10163_2_co": "B-NSH", "DBM10163_2_t2_2h": "B-TYC",
-        "DBM10163_3_co": "B-ZBH", "DBM10163_3_t2_2h": "B-HBH",
-        "DBM10163_4_co": "B-JAZ", "DBM10163_4_t2_2h": "B-TYC",
-        "DBM10163_5_co": "B-NAK", "DBM10163_5_t2_2h": "B-TYC",
-        "DBM10163_6_co": "B-AHA", "DBM10163_6_t2_2h": "B-LKT",
-        "DBM10163_7_co": "B-ZBD", "DBM10163_7_t2_2h": "B-SFK",
-        "DBM10163_8_co": "B-HBH", "DBM10163_8_t2_2h": "B-FBA",
-        "DBM10163_9_co": "B-AIN", "DBM10163_9_t2_2h": "B-FBA",
-        "DBM10163_10_co": "B-AAA", "DBM10163_10_t2_2h": "B-LKT",
-        "DBM10163_11_co": "B-JBI", "DBM10163_11_t2_4h": "B-NSH",
-        "DBM10163_12_co": "B-FBA", "DBM10163_12_t2_2h": "B-JAZ",
-        "DBM10163_13_co": "B-TYC", "DBM10163_13_t2_2h": "B-ROS",
-        "DBM10163_14_co": "B-HSI", "DBM10163_14_t2_2h": "B-MSP",
-        "DBM10163_15_co": "B-JAZ", "DBM10163_15_t2_2h": "B-RAR",
-        "DBM10163_16_co": "B-NSH", "DBM10163_16_t2_2h": "B-LKT",
-        "DBM10163_17_co": "B-HBH", "DBM10163_17_t2_2h": "B-AIN",
-        "DBM10163_18_co": "B-LKT", "DBM10163_18_t2_2h": "B-NSH",
-        "DBM10163_19_co": "B-ZBD", "DBM10163_19_t2_2h": "B-TYC",
-        "DBM10163_20_co": "B-FBA", "DBM10163_20_t2_2h": "B-LKT",
-        "DBM10163_21_co": "B-LKT", "DBM10163_21_t2_2h": "B-ALZ",
-        "DBM10163_22_co": "M-MGS", "DBM10163_22_t2_2h": "B-RAR",
-        "DBM10163_23_co": "B-TYC", "DBM10163_23_t2_2h": "B-FBA",
-        "DBM10163_24_co": "B-ROS", "DBM10163_24_t2_2h": "B-AMY",
-        "DBM10163_25_co": "B-HBH", "DBM10163_25_t2_2h": "B-NAK",
-
-        // DBM10202
-        "DBM10202_0_co": "B-JAZ", "DBM10202_0_t2_2h": "B-RAR",
-        "DBM10202_1_co": "B-ZAK", "DBM10202_1_t2_2h": "B-JAZ",
-        "DBM10202_2_co": "B-RAR", "DBM10202_2_t2_2h": "B-NSH",
-
-        // DBM20233
-        "DBM20233_0_co": "B-SFK", "DBM20233_0_t2_2h": "B-RAR",
-        "DBM20233_1_co": "B-NSH", "DBM20233_1_t2_2h": "B-SFK",
-        "DBM20233_2_co": "B-AMY", "DBM20233_2_t2_2h": "B-AAA",
-        "DBM20233_3_co": "B-RAR", "DBM20233_3_t2_2h": "B-HBH",
-
-        // DBM10252
-        "DBM10252_0_co": "B-LKT", "DBM10252_0_t2_2h": "B-HSI",
-        "DBM10252_1_co": "B-FBA", "DBM10252_1_t2_2h": "B-HBH",
-        "DBM10252_2_co": "B-AAA", "DBM10252_2_t2_2h": "B-ZBH",
-        "DBM10252_3_co": "B-AHA", "DBM10252_3_t2_2h": "B-JGM",
-        "DBM10252_4_co": "B-JAZ", "DBM10252_4_t2_2h": "B-ALZ",
-        "DBM10252_5_co": "M-WWM", "DBM10252_5_t2_2h": "B-MSP",
-
-        // DBM20173
-        "DBM20173_0_co": "B-TYC", "DBM20173_0_t2_2h": "B-AMY",
-        "DBM20173_1_co": "B-SBN", "DBM20173_1_t2_2h": "B-AMY",
-        "DBM20173_2_co": "B-ROS", "DBM20173_2_t2_2h": "B-ABE",
-        "DBM20173_3_co": "B-JGM", "DBM20173_3_t2_2h": "B-NAS",
-        "DBM20173_4_co": "",      "DBM20173_4_t2_2h": "B-JGM",
-
-        // DBM30243
-        "DBM30243_0_co": "B-NAS", "DBM30243_0_t2_2h": "B-FBM",
-        "DBM30243_1_co": "B-AAA", "DBM30243_1_t2_2h": "B-NAS",
-
-        // KOKURIKULUM
-        "KOKU_0_co": "WATANIAH", "KOKU_0_t2": "B-SFK",
-        "KOKU_1_co": "PENGAKAP", "KOKU_1_t2": "B-MZM",
-        "KOKU_2_co": "KELAB",    "KOKU_2_t2": "B-ALZ",
-
-        // DBM30183
-        "DBM30183_0_co": "B-NHMY", "DBM30183_0_t2_2h": "B-NAZ",
-        "DBM30183_1_co": "B-SBR", "DBM30183_1_t2_2h": "B-NHMY",
-        "DBM30183_2_co": "B-SFK", "DBM30183_2_t2_2h": "B-FBM",
-        "DBM30183_3_co": "B-JBI", "DBM30183_3_t2_2h": "B-AMY",
-        "DBM30183_4_co": "B-ZBH", "DBM30183_4_t2_2h": "B-NAZ",
-        "DBM30183_5_co": "B-SFK", "DBM30183_5_t2_2h": "B-ZBH",
-        "DBM30183_6_co": "B-ZBH", "DBM30183_6_t2_2h": "B-SBR",
-        "DBM30183_7_co": "B-NHMY", "DBM30183_7_t2_2h": "B-ZBH",
-        "DBM30183_8_co": "B-SBR", "DBM30183_8_t2_2h": "B-FBM",
-        "DBM30183_9_co": "B-JBI", "DBM30183_9_t2_2h": "B-SBR",
-        "DBM30183_10_co": "B-NAZ", "DBM30183_10_t2_2h": "B-NHMY",
-
-        // DBM30193
-        "DBM30193_0_co": "B-SBR", "DBM30193_0_t2_2h": "B-ABE",
-        "DBM30193_1_co": "",      "DBM30193_1_t2_2h": "B-SBR",
-        "DBM30193_2_co": "B-FBM", "DBM30193_2_t2_2h": "B-ABE",
-        "DBM30193_3_co": "B-AMY", "DBM30193_3_t2_2h": "B-NHMY",
-        "DBM30193_4_co": "B-NAZ", "DBM30193_4_t2_2h": "B-JBI",
-        "DBM30193_5_co": "B-AMY", "DBM30193_5_t2_2h": "B-SBR",
-        "DBM30193_6_co": "B-NAZ", "DBM30193_6_t2_2h": "B-JBI",
-        "DBM30193_7_co": "B-ABE", "DBM30193_7_t2_2h": "B-JBI",
-        "DBM30193_8_co": "B-SMR", "DBM30193_8_t2_2h": "B-NAZ"
-      };
+      // Mengembalikan objek kosong jika jadual dalam GSheet disetkan kosong / tanda '-'
+      return {};
     }
 
     function renderAllCourseTables() {
@@ -847,61 +784,76 @@
       });
     }
 
-    // GOOGLE SHEETS LIVE SYNC ENGINE
+    // GOOGLE SHEETS LIVE SYNC ENGINE & ADMIN AUTH
     const GSHEET_STORAGE_KEY = "ppd_jmsk_gsheet_csv_url";
     const ADMIN_PASSWORD_KEY = "ppd_jmsk_admin_pass";
     const ADMIN_SESSION_KEY = "ppd_jmsk_admin_logged_in";
+    // Pautan lalai rasmi Google Sheet pengguna
+    const DEFAULT_GSHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR3w3vRMabJBYA9tIrYYQ1Gph-SNRsJU_pF2H1dOhjT6ZefsduiVxIP0XX7CZ5k-U1Qqz1QdKBiZkzc/pub?gid=297422386&single=true&output=csv";
 
+    // Toast Notification Manager
     function showToast(message, type = "info") {
       const container = document.getElementById("toast-container");
       if (!container) return;
+
       const toast = document.createElement("div");
-      
-      let bgClass = "bg-slate-900 border-slate-700 text-white";
-      let icon = '<i class="fa-solid fa-circle-info text-sky-400"></i>';
-      if (type === "success") {
-        bgClass = "bg-emerald-950 border-emerald-700 text-emerald-100";
-        icon = '<i class="fa-solid fa-circle-check text-emerald-400"></i>';
-      } else if (type === "error") {
-        bgClass = "bg-rose-950 border-rose-700 text-rose-100";
-        icon = '<i class="fa-solid fa-triangle-exclamation text-rose-400"></i>';
-      }
+      const bgColors = {
+        success: "bg-emerald-600 text-white border-emerald-400",
+        error: "bg-rose-600 text-white border-rose-400",
+        warning: "bg-amber-600 text-white border-amber-400",
+        info: "bg-slate-800 text-white border-slate-600"
+      };
+      const icons = {
+        success: "fa-circle-check",
+        error: "fa-circle-exclamation",
+        warning: "fa-triangle-exclamation",
+        info: "fa-circle-info"
+      };
 
-      toast.className = `${bgClass} border px-4 py-2.5 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 transition-all duration-300 transform translate-y-2 opacity-0 pointer-events-auto`;
-      toast.innerHTML = `${icon} <span>${message}</span>`;
+      toast.className = `${bgColors[type] || bgColors.info} border px-3 py-2 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 pointer-events-auto transform transition-all duration-300 opacity-0 translate-y-2`;
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.info}"></i>
+        <span>${message}</span>
+      `;
+
       container.appendChild(toast);
-
-      setTimeout(() => {
-        toast.classList.remove("translate-y-2", "opacity-0");
-      }, 10);
+      requestAnimationFrame(() => {
+        toast.classList.remove("opacity-0", "translate-y-2");
+      });
 
       setTimeout(() => {
         toast.classList.add("opacity-0", "translate-y-2");
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => {
+          if (toast.parentNode) toast.parentNode.removeChild(toast);
+        }, 300);
       }, 3500);
     }
 
+    function getAdminPassword() {
+      return localStorage.getItem(ADMIN_PASSWORD_KEY) || "jmsk2026";
+    }
+
     function checkAdminSession() {
-      const isLoggedIn = sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
-      const btnAdminGSheet = document.getElementById("btn-admin-gsheet-config");
-      const btnLoginAdmin = document.getElementById("btn-login-admin");
+      const isAdmin = sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
+      const btnConfig = document.getElementById("btn-admin-gsheet-config");
+      const btnLogin = document.getElementById("btn-login-admin");
       const adminSessionBox = document.getElementById("admin-session-box");
       const roleBadge = document.getElementById("role-badge");
 
-      if (isLoggedIn) {
-        if (btnAdminGSheet) btnAdminGSheet.classList.remove("hidden");
-        if (btnLoginAdmin) btnLoginAdmin.classList.add("hidden");
+      if (isAdmin) {
+        if (btnConfig) btnConfig.classList.remove("hidden");
+        if (btnLogin) btnLogin.classList.add("hidden");
         if (adminSessionBox) {
           adminSessionBox.classList.remove("hidden");
           adminSessionBox.classList.add("flex");
         }
         if (roleBadge) {
           roleBadge.className = "bg-amber-500/20 text-amber-300 text-[9px] px-2 py-0.5 rounded uppercase font-bold tracking-normal";
-          roleBadge.innerHTML = '<i class="fa-solid fa-shield-halved text-[8px] mr-1"></i> Pentadbir (Admin Mode)';
+          roleBadge.innerHTML = '<i class="fa-solid fa-shield-halved text-[8px] mr-1 text-amber-400"></i> Pentadbir (Admin)';
         }
       } else {
-        if (btnAdminGSheet) btnAdminGSheet.classList.add("hidden");
-        if (btnLoginAdmin) btnLoginAdmin.classList.remove("hidden");
+        if (btnConfig) btnConfig.classList.add("hidden");
+        if (btnLogin) btnLogin.classList.remove("hidden");
         if (adminSessionBox) {
           adminSessionBox.classList.add("hidden");
           adminSessionBox.classList.remove("flex");
@@ -915,12 +867,10 @@
 
     function openAdminLoginModal() {
       const modal = document.getElementById("admin-login-modal");
-      const passInput = document.getElementById("input-admin-password");
+      const input = document.getElementById("input-admin-password");
+      if (input) input.value = "";
       if (modal) modal.classList.remove("hidden");
-      if (passInput) {
-        passInput.value = "";
-        setTimeout(() => passInput.focus(), 50);
-      }
+      setTimeout(() => { if (input) input.focus(); }, 100);
     }
 
     function closeAdminLoginModal() {
@@ -929,46 +879,419 @@
     }
 
     function handleAdminLogin() {
-      const passInput = document.getElementById("input-admin-password");
-      const enteredPass = passInput ? passInput.value.trim() : "";
-      const savedPass = localStorage.getItem(ADMIN_PASSWORD_KEY) || "jmsk2026";
+      const input = document.getElementById("input-admin-password");
+      const enteredPass = input ? input.value : "";
+      const currentPass = getAdminPassword();
 
-      if (enteredPass === savedPass) {
+      if (enteredPass === currentPass) {
         sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-        closeAdminLoginModal();
         checkAdminSession();
-        showToast("Log masuk pentadbir berjaya! Anda kini boleh menetapkan pautan Google Sheet.", "success");
+        closeAdminLoginModal();
+        showToast("Log masuk Pentadbir berjaya!", "success");
       } else {
-        showToast("Kata laluan tidak sah! Sila cuba lagi.", "error");
+        showToast("Kata laluan salah. Sila cuba lagi.", "error");
+        if (input) {
+          input.value = "";
+          input.focus();
+        }
       }
     }
 
     function logoutAdmin() {
       sessionStorage.removeItem(ADMIN_SESSION_KEY);
       checkAdminSession();
-      showToast("Anda telah keluar dari mod Pentadbir. Paparan kembali kepada mod Pensyarah (Viewer).", "info");
+      showToast("Anda telah keluar dari mod Pentadbir.", "info");
     }
 
     function updateAdminPassword() {
-      const newPassInput = document.getElementById("input-new-admin-password");
-      const newPass = newPassInput ? newPassInput.value.trim() : "";
-      if (newPass.length < 4) {
-        showToast("Kata laluan baharu mestilah sekurang-kurangnya 4 aksara.", "error");
+      const input = document.getElementById("input-new-admin-password");
+      const newPass = input ? input.value.trim() : "";
+      if (!newPass || newPass.length < 4) {
+        showToast("Kata laluan mestilah sekurang-kurangnya 4 aksara.", "error");
         return;
       }
       localStorage.setItem(ADMIN_PASSWORD_KEY, newPass);
-      if (newPassInput) newPassInput.value = "";
-      showToast("Kata laluan pentadbir berjaya dikemas kini!", "success");
+      if (input) input.value = "";
+      showToast("Kata laluan Pentadbir berjaya dikemas kini!", "success");
+    }
+
+    // Ekstrak ID dan GID daripada sebarang format URL Google Sheets
+    function extractGoogleSheetInfo(rawUrl) {
+      if (!rawUrl) return null;
+      const url = rawUrl.trim();
+
+      // Semak jika format Publish to Web /d/e/2PACX-...
+      if (url.includes("/d/e/") || url.includes("2PACX-")) {
+        let pubUrl = url;
+        if (!pubUrl.includes("output=csv")) {
+          pubUrl += (pubUrl.includes("?") ? "&" : "?") + "output=csv";
+        }
+        return { type: "published", url: pubUrl };
+      }
+
+      // Semak jika format biasa /spreadsheets/d/ID/...
+      const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+      if (idMatch && idMatch[1] && idMatch[1] !== "e") {
+        const sheetId = idMatch[1];
+        const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+        const gid = gidMatch ? gidMatch[1] : "0";
+        return { type: "normal", sheetId, gid };
+      }
+
+      return { type: "custom", url: url };
+    }
+
+    // Fungsi pintar menukar sebarang URL Google Sheet kepada CSV Live yang sah
+    function normalizeGoogleSheetUrl(rawUrl) {
+      const info = extractGoogleSheetInfo(rawUrl);
+      if (!info) return "";
+      if (info.type === "normal") {
+        return `https://docs.google.com/spreadsheets/d/${info.sheetId}/gviz/tq?tqx=out:csv&gid=${info.gid}`;
+      }
+      return info.url || rawUrl.trim();
+    }
+
+    // ENJIN 1: PENGAMBILAN DATA BEBAS-CORS MENGGUNAKAN TEKNIK JSONP GOOGLE VISUALIZATION
+    function fetchGoogleSheetViaJsonp(sheetId, gid) {
+      return new Promise((resolve, reject) => {
+        const callbackName = "gvizCallback_" + Math.floor(Math.random() * 1000000);
+        const timeoutDuration = 12000;
+
+        let scriptTag = null;
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("Masa tamat (Timeout). Sila pastikan perkongsian Google Sheet disetkan kepada 'Anyone with the link can view'."));
+        }, timeoutDuration);
+
+        function cleanup() {
+          clearTimeout(timer);
+          try { delete window[callbackName]; } catch (e) { window[callbackName] = undefined; }
+          if (scriptTag && scriptTag.parentNode) {
+            scriptTag.parentNode.removeChild(scriptTag);
+          }
+        }
+
+        window[callbackName] = function(json) {
+          cleanup();
+          if (!json || !json.table || !json.table.rows) {
+            reject(new Error("Format data Google Sheet tidak sah atau helaian kosong."));
+            return;
+          }
+
+          const rows = json.table.rows || [];
+          const grid = rows.map(r => {
+            return (r.c || []).map(cell => {
+              if (!cell) return "";
+              if (cell.f !== undefined && cell.f !== null) return String(cell.f).trim();
+              if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
+              return "";
+            });
+          });
+
+          resolve(grid);
+        };
+
+        scriptTag = document.createElement("script");
+        scriptTag.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?gid=${gid || "0"}&tqx=responseHandler:${callbackName}&_nocache=${Date.now()}`;
+        scriptTag.onerror = function() {
+          cleanup();
+          reject(new Error("Gagal memuatkan Google Sheet. Pastikan akses Share disetkan kepada 'Anyone with the link can view'."));
+        };
+
+        document.body.appendChild(scriptTag);
+      });
+    }
+
+    // ENJIN 2: PENGAMBILAN DATA CSV DENGAN PROKSI BERGELAPIS ANTI-CORS & ANTI-CACHE
+    async function fetchPublishedCsvViaProxies(targetUrl) {
+      const timestamp = Date.now();
+      let cleanUrl = targetUrl;
+      cleanUrl += (cleanUrl.includes("?") ? "&" : "?") + `_nocache=${timestamp}`;
+
+      const proxyEndpoints = [
+        { name: "AllOriginsGet", url: `https://api.allorigins.win/get?url=${encodeURIComponent(cleanUrl)}&_ts=${timestamp}`, isJson: true },
+        { name: "AllOriginsRaw", url: `https://api.allorigins.win/raw?url=${encodeURIComponent(cleanUrl)}`, isJson: false },
+        { name: "CodeTabs", url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(cleanUrl)}`, isJson: false },
+        { name: "CorsProxy", url: `https://corsproxy.io/?url=${encodeURIComponent(cleanUrl)}`, isJson: false }
+      ];
+
+      let lastError = null;
+
+      for (const proxy of proxyEndpoints) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 saat timeout bagi setiap proksi
+
+          const res = await fetch(proxy.url, { signal: controller.signal });
+          clearTimeout(timeoutId);
+
+          if (!res.ok) continue;
+
+          let textData = "";
+          if (proxy.isJson) {
+            const json = await res.json();
+            textData = json.contents || "";
+          } else {
+            textData = await res.text();
+          }
+
+          if (textData && textData.length > 50 && !textData.includes("<!DOCTYPE html") && !textData.includes("accounts.google.com")) {
+            return textData;
+          }
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      throw new Error(lastError ? (lastError.message || "Gagal menyambung ke proksi") : "Sambungan disekat oleh rangkaian atau proksi tidak responsif.");
+    }
+
+    async function testAndDiagnoseGSheet() {
+      const inputUrl = document.getElementById("input-gsheet-url").value.trim();
+      const previewBox = document.getElementById("diagnostic-preview-box");
+      if (!inputUrl) {
+        showToast("Sila masukkan pautan Google Sheet terlebih dahulu.", "error");
+        return;
+      }
+
+      previewBox.classList.remove("hidden");
+      previewBox.textContent = "Sedang menguji sambungan ke Google Sheet...\nURL: " + inputUrl;
+
+      try {
+        const info = extractGoogleSheetInfo(inputUrl);
+
+        if (info && info.type === "normal") {
+          previewBox.textContent += "\nFormat dikesan: Pautan Google Sheet Biasa (Menggunakan enjin JSONP)\nMenyambung...";
+          const grid = await fetchGoogleSheetViaJsonp(info.sheetId, info.gid);
+          previewBox.textContent = `[BERJAYA - 0 SAAT DELAY]\nData berjaya dibaca: ${grid.length} baris dikesan.\n\nContoh 5 baris pertama:\n` + 
+            grid.slice(0, 5).map(r => r.join(" | ")).join("\n");
+        } else {
+          previewBox.textContent += "\nFormat dikesan: Pautan Published to Web (Menggunakan proksi CSV)\nMenyambung...";
+          const csvText = await fetchPublishedCsvViaProxies(inputUrl);
+          previewBox.textContent = `[BERJAYA MEMUATKAN CSV]\nSaiz data: ${csvText.length} bait.\n\nPratonton 10 baris pertama CSV sebenar:\n` +
+            csvText.split(/\r?\n/).slice(0, 10).join("\n");
+        }
+      } catch (err) {
+        previewBox.textContent = `[RALAT SAMBUNGAN]\n${err.message}\n\nCadangan Penyelesaian:\n1. Buka Google Sheet dan klik Share -> 'Anyone with the link can view'.\n2. Gunakan URL browser biasa (https://docs.google.com/spreadsheets/d/.../edit).\n3. Atau gunakan 'Pilihan Sandaran: Tampal Data Terus' di bawah.`;
+      }
+    }
+
+    async function fetchFromGoogleSheet(isForced = false) {
+      const rawUrl = localStorage.getItem(GSHEET_STORAGE_KEY) || DEFAULT_GSHEET_URL;
+      const syncBtn = document.getElementById("btn-sync-gsheet");
+      const syncIcon = document.getElementById("sync-icon");
+
+      try {
+        if (syncIcon) syncIcon.classList.add("fa-spin");
+        if (syncBtn) syncBtn.classList.add("opacity-75");
+
+        const info = extractGoogleSheetInfo(rawUrl);
+        let grid = null;
+
+        // KAEDAH 1: Jika pautan Google Sheet biasa, gunakan JSONP rasmi Google (0 Saat delay & bebas CORS)
+        if (info && info.type === "normal") {
+          try {
+            grid = await fetchGoogleSheetViaJsonp(info.sheetId, info.gid);
+          } catch (jsonpErr) {
+            console.warn("JSONP gagal, mencuba proksi:", jsonpErr);
+          }
+        }
+
+        // KAEDAH 2: Jika pautan Publish to Web (/d/e/2PACX-...) atau JSONP gagal
+        if (!grid) {
+          const csvText = await fetchPublishedCsvViaProxies(rawUrl);
+          grid = parseCsvTo2DArray(csvText);
+        }
+
+        if (!grid || grid.length < 2) {
+          throw new Error("Data Google Sheet didapati kosong atau format tidak serasi.");
+        }
+
+        const matchedCount = applyGridToAllocations(grid);
+        renderAllCourseTables();
+        renderLecturerSummaryMaster();
+
+        if (isForced) {
+          showToast(`Penyegerakan berjaya! ${matchedCount} data pensyarah dikemas kini daripada Google Sheet.`, "success");
+        }
+      } catch (err) {
+        // Hanya log ralat dan tunjuk popup jika pengguna menekan butang Sync secara manual
+        if (isForced) {
+          console.warn("GSheet Sync Notice:", err.message);
+          showToast(`Penyegerakan tidak dapat diselesaikan: Sambungan ke pelayan Google disekat. Data tersimpan kekal aktif.`, "warning");
+        } else {
+          // Pada paparan awal (background), kekalkan data pramuat tanpa mencetuskan ralat merah
+          console.info("Info: Menggunakan data agihan tersimpan dalam persekitaran semasa.");
+        }
+      } finally {
+        if (syncIcon) syncIcon.classList.remove("fa-spin");
+        if (syncBtn) syncBtn.classList.remove("opacity-75");
+      }
+    }
+
+    // Fungsi pembersihan aksara untuk padanan kelas (kebal simbol / ruang / baris baru)
+    function normalizeClassTarget(str) {
+      return String(str || "").toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+
+    // Fungsi semakan sama ada nilai sel adalah sah (bukan '-', bukan 'CO', bukan kosong)
+    function isValidLecturerValue(val) {
+      if (!val) return false;
+      const clean = String(val).trim().toUpperCase();
+      if (clean === "" || clean === "-" || clean === "–" || clean === "—" || clean === "CO" || clean === "C0" || clean === "T2") {
+        return false;
+      }
+      return true;
+    }
+
+    // Fungsi pemetaan data grid ke dalam struktur jadual yang fleksibel
+    function applyGridToAllocations(grid) {
+      if (!grid || grid.length < 2) return 0;
+      let matchCount = 0;
+
+      // Bersihkan dan normalkan sel
+      const cleanGrid = grid.map(row => row.map(cell => String(cell || "").trim()));
+
+      // 1. Kosongkan peruntukan lama jika menyegerakkan dari fail terkini
+      actualAllocations = {};
+
+      // 2. Semak koordinat setiap kursus dalam lembaran
+      coursesStructure.forEach(course => {
+        let courseHeaderRow = -1;
+        let courseStartCol = -1;
+
+        // Imbas grid untuk mencari nama kod kursus
+        for (let r = 0; r < cleanGrid.length; r++) {
+          for (let c = 0; c < cleanGrid[r].length; c++) {
+            const cellText = cleanGrid[r][c].toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (cellText === course.id || cellText.startsWith(course.id)) {
+              courseHeaderRow = r;
+              courseStartCol = c;
+              break;
+            }
+          }
+          if (courseHeaderRow !== -1) break;
+        }
+
+        // Tentukan kedudukan lajur sub-header (KURSUS, BIL, CO/C0, T2)
+        let colGroup = -1;
+        let colCo = -1;
+        let colT4 = -1;
+        let colT3 = -1;
+        let colT2 = -1;
+
+        if (courseHeaderRow !== -1) {
+          for (let subR = courseHeaderRow + 1; subR <= Math.min(courseHeaderRow + 4, cleanGrid.length - 1); subR++) {
+            for (let c = courseStartCol; c < Math.min(courseStartCol + 7, cleanGrid[subR].length); c++) {
+              const hRaw = cleanGrid[subR][c].toUpperCase();
+              const hClean = hRaw.replace(/[^A-Z0-9]/g, '');
+
+              if (hClean === "KURSUS" && colGroup === -1) colGroup = c;
+              else if ((hClean === "CO" || hClean === "C0") && colCo === -1) colCo = c;
+              else if (hClean.includes("4H") && colT4 === -1) colT4 = c;
+              else if (hClean.includes("3H") && colT3 === -1) colT3 = c;
+              else if (hClean.includes("2H") && colT2 === -1) colT2 = c;
+              else if (hClean === "T2" && colT2 === -1) colT2 = c;
+            }
+          }
+        }
+
+        if (colGroup === -1 && courseStartCol !== -1) colGroup = courseStartCol;
+        if (colCo === -1 && colGroup !== -1) {
+          colCo = colGroup + 2; // Mengambil kira ruang lajur BIL
+          colT2 = colCo + 1;
+        }
+
+        // Tentukan sempadan baris bagi kursus ini
+        const startR = courseHeaderRow !== -1 ? courseHeaderRow + 1 : 0;
+        const maxScanRows = course.classes.length + 8;
+        const endR = Math.min(cleanGrid.length, startR + maxScanRows);
+
+        // Padankan setiap kelas bagi kursus ini
+        course.classes.forEach((cls, rIdx) => {
+          const groupTarget = normalizeClassTarget(cls.group);
+          let rowFound = -1;
+
+          if (colGroup !== -1) {
+            for (let r = startR; r < endR; r++) {
+              const curCell = cleanGrid[r][colGroup] ? normalizeClassTarget(cleanGrid[r][colGroup]) : '';
+              if (curCell === groupTarget || (curCell && groupTarget && (curCell.includes(groupTarget) || groupTarget.includes(curCell)))) {
+                rowFound = r;
+                break;
+              }
+            }
+          }
+
+          if (rowFound !== -1) {
+            const rowData = cleanGrid[rowFound];
+
+            if (colCo !== -1) {
+              const valCo = (rowData[colCo] || "").trim();
+              const keyCo = `${course.id}_${rIdx}_co`;
+              if (isValidLecturerValue(valCo)) {
+                actualAllocations[keyCo] = valCo.toUpperCase();
+                matchCount++;
+              }
+            }
+
+            if (colT4 !== -1) {
+              const valT4 = (rowData[colT4] || "").trim();
+              const keyT4 = `${course.id}_${rIdx}_t2_4h`;
+              if (isValidLecturerValue(valT4)) {
+                actualAllocations[keyT4] = valT4.toUpperCase();
+                matchCount++;
+              }
+            }
+
+            if (colT3 !== -1) {
+              const valT3 = (rowData[colT3] || "").trim();
+              const keyT3 = `${course.id}_${rIdx}_t2_3h`;
+              if (isValidLecturerValue(valT3)) {
+                actualAllocations[keyT3] = valT3.toUpperCase();
+                matchCount++;
+              }
+            }
+
+            if (colT2 !== -1) {
+              const valT2 = (rowData[colT2] || "").trim();
+              const targetSlot = course.id === "KOKU" ? "t2" : "t2_2h";
+              const keyT2 = `${course.id}_${rIdx}_${targetSlot}`;
+              if (isValidLecturerValue(valT2)) {
+                actualAllocations[keyT2] = valT2.toUpperCase();
+                matchCount++;
+              }
+            }
+          }
+        });
+      });
+
+      saveAllocationsToStorage();
+      return matchCount;
     }
 
     function openConfigModal() {
-      // Security guard: only open if admin
       if (sessionStorage.getItem(ADMIN_SESSION_KEY) !== "true") {
         openAdminLoginModal();
         return;
       }
+      const currentUrl = localStorage.getItem(GSHEET_STORAGE_KEY) || "";
       const input = document.getElementById("input-gsheet-url");
-      input.value = localStorage.getItem(GSHEET_STORAGE_KEY) || "";
+      input.value = currentUrl;
+
+      const typeBadge = document.getElementById("gsheet-current-detected-type");
+      if (typeBadge) {
+        if (!currentUrl) {
+          typeBadge.textContent = "Belum ditetapkan";
+          typeBadge.className = "font-mono text-[9.5px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold";
+        } else if (currentUrl.includes("pub?")) {
+          typeBadge.textContent = "Published CSV (Kelewatan 5-15 minit Google)";
+          typeBadge.className = "font-mono text-[9.5px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold border border-amber-300";
+        } else {
+          typeBadge.textContent = "URL Biasa GSheet (Kemas kini 0-Saat Serta Merta)";
+          typeBadge.className = "font-mono text-[9.5px] bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded font-bold border border-emerald-300";
+        }
+      }
+
       document.getElementById("gsheet-modal").classList.remove("hidden");
     }
 
@@ -977,11 +1300,11 @@
     }
 
     function saveAndSyncGoogleSheetUrl() {
-      const url = document.getElementById("input-gsheet-url").value.trim();
-      if (url) {
-        localStorage.setItem(GSHEET_STORAGE_KEY, url);
+      const rawUrl = document.getElementById("input-gsheet-url").value.trim();
+      if (rawUrl) {
+        localStorage.setItem(GSHEET_STORAGE_KEY, rawUrl);
         closeConfigModal();
-        showToast("Pautan Google Sheet berjaya disimpan. Menyegerakkan data...", "success");
+        showToast("Pautan disimpan! Menyambung ke Google Sheet...", "success");
         fetchFromGoogleSheet();
       } else {
         localStorage.removeItem(GSHEET_STORAGE_KEY);
@@ -990,76 +1313,65 @@
       }
     }
 
-    async function fetchFromGoogleSheet() {
-      const csvUrl = localStorage.getItem(GSHEET_STORAGE_KEY);
-      const syncBtn = document.getElementById("btn-sync-gsheet");
-      const syncIcon = document.getElementById("sync-icon");
-
-      if (!csvUrl) {
-        if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "true") {
-          openConfigModal();
-        } else {
-          showToast("Pautan Google Sheet belum ditetapkan oleh Pentadbir.", "error");
-        }
+    // Pilihan sandaran: memproses teks tampalan terus secara manual
+    function handleManualPasteData() {
+      const text = document.getElementById("input-manual-paste").value;
+      if (!text || text.trim() === "") {
+        showToast("Sila tampal teks jadual terlebih dahulu.", "error");
         return;
       }
-
-      try {
-        if (syncIcon) syncIcon.classList.add("fa-spin");
-        if (syncBtn) syncBtn.classList.add("opacity-75");
-
-        const response = await fetch(csvUrl);
-        if (!response.ok) throw new Error("Gagal menyambung ke Google Sheet.");
-        const csvText = await response.text();
-
-        parseCsvAndUpdateAllocations(csvText);
-        renderAllCourseTables();
-        renderLecturerSummaryMaster();
-
-        showToast("Data terkini daripada Google Sheet berjaya disegerakkan!", "success");
-      } catch (err) {
-        console.error("GSheet Fetch Error:", err);
-        showToast("Ralat menyambung ke Google Sheet. Sila pastikan helaian di-Publish to Web sebagai format CSV.", "error");
-      } finally {
-        if (syncIcon) syncIcon.classList.remove("fa-spin");
-        if (syncBtn) syncBtn.classList.remove("opacity-75");
+      
+      let grid = [];
+      if (text.includes("\t")) {
+        grid = text.split(/\r?\n/).map(line => line.split("\t"));
+      } else {
+        grid = parseCsvTo2DArray(text);
       }
+
+      const count = applyGridToAllocations(grid);
+      renderAllCourseTables();
+      renderLecturerSummaryMaster();
+      closeConfigModal();
+      showToast(`Berjaya memproses ${count} data jadual daripada tampalan terus!`, "success");
     }
 
-    function parseCsvAndUpdateAllocations(csvText) {
-      // Robust simple CSV parser handling rows and commas
-      const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
-      if (lines.length < 2) return;
-
-      // Extract tokens by scanning cells
-      // Any lecturer code like B-XXX is extracted and mapped based on context if headers exist
-      // Alternatively, we scan allocations matching master lecturer codes
-      lines.forEach((line) => {
-        const cols = line.split(",").map(c => c.replace(/^["']|["']$/g, "").trim().toUpperCase());
-        // Match course rows
-        coursesStructure.forEach(course => {
-          course.classes.forEach((cls, rIdx) => {
-            const groupName = cls.group.toUpperCase();
-            if (cols.includes(groupName)) {
-              const grpColIndex = cols.indexOf(groupName);
-              // Read subsequent columns for CO, T2
-              if (cols[grpColIndex + 1]) {
-                const valCo = cols[grpColIndex + 1];
-                if (masterLecturers.includes(valCo) || valCo.startsWith("B-") || valCo.startsWith("M-")) {
-                  actualAllocations[`${course.id}_${rIdx}_co`] = valCo;
-                }
-              }
-              if (cols[grpColIndex + 2]) {
-                const valT2 = cols[grpColIndex + 2];
-                if (masterLecturers.includes(valT2) || valT2.startsWith("B-") || valT2.startsWith("M-")) {
-                  actualAllocations[`${course.id}_${rIdx}_t2_2h`] = valT2;
-                }
-              }
-            }
-          });
-        });
-      });
-      saveAllocationsToStorage();
+    // Penghurai teks CSV piawai (RFC 4180) kepada tatasusunan 2D
+    function parseCsvTo2DArray(text) {
+      if (!text) return [];
+      const lines = [];
+      let row = [];
+      let cell = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        const next = text[i + 1];
+        if (c === '"') {
+          if (inQuotes && next === '"') {
+            cell += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (c === ',' && !inQuotes) {
+          row.push(cell);
+          cell = '';
+        } else if ((c === '\r' || c === '\n') && !inQuotes) {
+          if (c === '\r' && next === '\n') {
+            i++;
+          }
+          row.push(cell);
+          lines.push(row);
+          row = [];
+          cell = '';
+        } else {
+          cell += c;
+        }
+      }
+      if (cell !== '' || row.length > 0) {
+        row.push(cell);
+        lines.push(row);
+      }
+      return lines;
     }
 
     function renderCourseJamConfigTable() {
@@ -1313,7 +1625,7 @@
     }
 
     function syncPagesContent() {
-      // Sync semua 4 Lajur Kursus ke dalam Halaman 1 (Halaman Tunggal Kursus)
+      // 1. Sync 4 Lajur Kursus Tulen ke dalam Halaman 1 (Hanya Jadual Kursus Sahaja)
       const p1 = document.getElementById("page1-all-courses-container");
       if (p1) {
         p1.innerHTML = `
@@ -1324,45 +1636,50 @@
             ${document.getElementById("table-DBM10202") ? document.getElementById("table-DBM10202").innerHTML : ''}
           </div>
 
-          <!-- KOLUM 2 -->
+          <!-- KOLUM 2 (Jadual Sahaja, Koku kini di bawah DBM20233) -->
           <div class="space-y-2">
             ${document.getElementById("table-DBM10163") ? document.getElementById("table-DBM10163").innerHTML : ''}
             ${document.getElementById("table-DBM20233") ? document.getElementById("table-DBM20233").innerHTML : ''}
-            <div class="border border-slate-700 bg-white p-2 text-[10px] space-y-1.5 shadow-xs">
-              <div class="font-black text-slate-800 border-b pb-1">PETUNJUK:</div>
-              <div class="flex items-center gap-2">
-                <span class="w-6 h-3.5 bg-yellow-300 border border-slate-400 inline-block shrink-0"></span>
-                <span class="font-bold text-[9.5px]">PENSYARAH 4 KELAS</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="w-6 h-3.5 bg-cyan-400 border border-slate-400 inline-block shrink-0"></span>
-                <span class="font-bold text-[9.5px]">KELAS CARRY JMSK</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="w-6 h-3.5 bg-purple-200 border border-slate-400 inline-block shrink-0"></span>
-                <span class="font-bold text-[9.5px]">KELAS MASS LECTURE</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="w-6 h-3.5 bg-slate-200 border border-slate-400 inline-block shrink-0"></span>
-                <span class="font-bold text-[9.5px]">PENSYARAH INDUK</span>
-              </div>
-            </div>
+            ${document.getElementById("table-KOKU") ? document.getElementById("table-KOKU").innerHTML : ''}
           </div>
 
           <!-- KOLUM 3 -->
           <div class="space-y-2">
             ${document.getElementById("table-DBM20173") ? document.getElementById("table-DBM20173").innerHTML : ''}
-            ${document.getElementById("table-DBM30243") ? document.getElementById("table-DBM30243").innerHTML : ''}
-            ${document.getElementById("table-KOKU") ? document.getElementById("table-KOKU").innerHTML : ''}
           </div>
 
-          <!-- KOLUM 4: Termasuk Kotak Rujukan Kadar Jam di Bawah Kanan -->
+          <!-- KOLUM 4 -->
           <div class="space-y-2">
+            ${document.getElementById("table-DBM30243") ? document.getElementById("table-DBM30243").innerHTML : ''}
             ${document.getElementById("table-DBM30183") ? document.getElementById("table-DBM30183").innerHTML : ''}
             ${document.getElementById("table-DBM30193") ? document.getElementById("table-DBM30193").innerHTML : ''}
             ${document.getElementById("table-DBM30033") ? document.getElementById("table-DBM30033").innerHTML : ''}
             ${document.getElementById("table-DBM30043") ? document.getElementById("table-DBM30043").innerHTML : ''}
-            ${document.getElementById("box-kadar-jam") ? document.getElementById("box-kadar-jam").outerHTML : ''}
+          </div>
+        `;
+      }
+
+      // 2. Sync Panel Tepi: Petunjuk Kod Warna & Kadar Jam Kursus (Berasingan di Tepi Kanan)
+      const sidePanel = document.getElementById("page1-side-panel");
+      if (sidePanel) {
+        const petunjukEl = document.getElementById("box-petunjuk");
+        const kadarJamEl = document.getElementById("box-kadar-jam");
+
+        sidePanel.innerHTML = `
+          <!-- Petunjuk Berasingan di Tepi -->
+          ${petunjukEl ? petunjukEl.outerHTML : ''}
+
+          <!-- Rujukan Kadar Jam Berasingan di Tepi -->
+          ${kadarJamEl ? kadarJamEl.outerHTML : ''}
+
+          <!-- Nota Tambahan Agihan -->
+          <div class="bg-indigo-50/60 border border-indigo-200 rounded-lg p-2 text-[9.5px] text-indigo-950 space-y-1">
+            <span class="font-bold block flex items-center gap-1 text-indigo-900">
+              <i class="fa-solid fa-circle-check text-indigo-600"></i> Peringatan Agihan:
+            </span>
+            <p class="leading-tight text-slate-600">
+              Sebarang pertukaran kelas hendaklah dimaklumkan kepada Ketua Program / Penyelaras Jadual Waktu JMSK.
+            </p>
           </div>
         `;
       }
@@ -1455,10 +1772,8 @@
       // Set default mode to Pages (Mod Halaman) as requested
       setViewMode('pages');
 
-      // If Google Sheet URL exists, automatically sync latest data
-      if (localStorage.getItem(GSHEET_STORAGE_KEY)) {
-        fetchFromGoogleSheet();
-      }
+      // Automatik cuba menyegerakkan pautan Google Sheet pengguna di latar belakang (isForced = false)
+      fetchFromGoogleSheet(false);
     });
   </script>
 
